@@ -17,6 +17,8 @@
 *.iws
 *.iml
 *.ipr
+.env
+boomhauser-venv
 
 ### NetBeans ###
 /nbproject/private/
