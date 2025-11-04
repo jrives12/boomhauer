@@ -334,6 +334,72 @@ def display_data(data: Dict, data_type: str):
         print(f"No {data_type} data found in the response.")
 
 
+def load_config(config_file: str = "config.json") -> Optional[Dict]:
+    """Load configuration from JSON file"""
+    try:
+        with open(config_file, 'r', encoding='utf-8') as f:
+            config = json.load(f)
+        
+        # Get station ID
+        station_id = config.get('station_id')
+        if not station_id:
+            print("Error: Station ID is required in config file.")
+            return None
+        
+        # Calculate dates
+        if config.get('use_current_date', False):
+            today = datetime.now()
+            begin_date = today.strftime('%Y%m%d')
+            
+            days_ahead = config.get('days_ahead', 7)
+            end_date_dt = today + timedelta(days=days_ahead)
+            end_date = end_date_dt.strftime('%Y%m%d')
+        else:
+            # If use_current_date is False, try to get dates from config
+            begin_date = config.get('begin_date')
+            end_date = config.get('end_date')
+            
+            if begin_date:
+                begin_date = format_date(begin_date)
+            if end_date:
+                end_date = format_date(end_date)
+            
+            if not begin_date or not end_date:
+                print("Error: Dates must be provided in config or use_current_date must be True.")
+                return None
+        
+        # Get data types
+        data_types = config.get('data_types', [])
+        if not data_types:
+            # Default to all data types if none specified
+            data_types = ['water_level', 'currents', 'water_temperature', 
+                         'wind', 'air_temperature', 'barometric_pressure']
+        
+        # Get units (default to 'english' which is the API default)
+        units = config.get('units', 'english')
+        
+        # Get time zone (default to 'gmt' which is the API default)
+        time_zone = config.get('time_zone', 'gmt')
+        
+        return {
+            'station_id': station_id,
+            'begin_date': begin_date,
+            'end_date': end_date,
+            'data_types': data_types,
+            'units': units,
+            'time_zone': time_zone
+        }
+    except FileNotFoundError:
+        print(f"Error: Config file '{config_file}' not found.")
+        return None
+    except json.JSONDecodeError as e:
+        print(f"Error: Invalid JSON in config file: {e}")
+        return None
+    except Exception as e:
+        print(f"Error loading config: {e}")
+        return None
+
+
 def get_user_input():
     """Get user input for station ID, dates, and data types"""
     print("NOAA Tides and Currents Data Retrieval")
@@ -436,10 +502,20 @@ def main():
     """Main program entry point"""
     api = NOAACoOpsAPI()
     
-    # Get user input
-    params = get_user_input()
+    # Load configuration from config file
+    print("NOAA Tides and Currents Data Retrieval")
+    print("=" * 60)
+    print("Loading configuration from config.json...")
+    
+    params = load_config()
     if not params:
+        print("Error: Failed to load configuration.")
         sys.exit(1)
+    
+    print(f"Station ID: {params['station_id']}")
+    print(f"Date range: {params['begin_date']} to {params['end_date']}")
+    print(f"Data types: {', '.join(params['data_types'])}")
+    print(f"Units: {params['units']}, Time zone: {params['time_zone']}")
     
     # Get station info first
     print(f"\nFetching station information for {params['station_id']}...")
