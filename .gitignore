@@ -19,6 +19,9 @@
 *.ipr
 .env
 boomhauser-venv
+.vscode
+.devcontainer
+
 
 ### NetBeans ###
 /nbproject/private/
