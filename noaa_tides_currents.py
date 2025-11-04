@@ -634,7 +634,7 @@ def fetch_and_save_data(config_file: str = "config.json") -> Optional[Dict]:
     }
 
 
-def get_tides(config_file: str = "config.json") -> Optional[Dict]:
+def get_tide(config_file: str = "config.json") -> Optional[Dict]:
     """
     Retrieve tides and currents data from NOAA API and save to JSON file.
     
@@ -653,5 +653,5 @@ def get_tides(config_file: str = "config.json") -> Optional[Dict]:
 
 
 if __name__ == "__main__":
-    get_tides()
+    get_tide()
 
