@@ -498,19 +498,27 @@ def get_user_input():
     }
 
 
-def main():
-    """Main program entry point"""
+def fetch_and_save_data(config_file: str = "config.json") -> Optional[Dict]:
+    """
+    Fetch data from NOAA API and save to JSON file.
+    
+    Args:
+        config_file: Path to configuration JSON file
+        
+    Returns:
+        Dictionary containing the retrieved data and output filename, or None if error
+    """
     api = NOAACoOpsAPI()
     
     # Load configuration from config file
     print("NOAA Tides and Currents Data Retrieval")
     print("=" * 60)
-    print("Loading configuration from config.json...")
+    print(f"Loading configuration from {config_file}...")
     
-    params = load_config()
+    params = load_config(config_file)
     if not params:
         print("Error: Failed to load configuration.")
-        sys.exit(1)
+        return None
     
     print(f"Station ID: {params['station_id']}")
     print(f"Date range: {params['begin_date']} to {params['end_date']}")
@@ -614,12 +622,36 @@ def main():
         print(f"{'='*60}")
     except Exception as e:
         print(f"\nError saving data to JSON file: {e}")
+        return None
     
     print("\n" + "=" * 60)
     print("Data retrieval complete!")
     print("=" * 60)
+    
+    return {
+        'data': all_data,
+        'output_file': output_filename
+    }
+
+
+def get_tides(config_file: str = "config.json") -> Optional[Dict]:
+    """
+    Retrieve tides and currents data from NOAA API and save to JSON file.
+    
+    This function can be imported and called from other modules.
+    
+    Args:
+        config_file: Path to configuration JSON file (default: "config.json")
+        
+    Returns:
+        Dictionary containing the retrieved data and output filename, or None if error
+    """
+    result = fetch_and_save_data(config_file)
+    if result is None:
+        return None
+    return result
 
 
 if __name__ == "__main__":
-    main()
+    get_tides()
 

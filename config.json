@@ -11,6 +11,8 @@
   "units": "english",
   "time_zone": "gmt",
   "use_current_date": true,
-  "days_ahead": 7
+  "days_ahead": 7,
+  "lat": "32.7808",
+  "lon": "-79.9236"
 }
 
