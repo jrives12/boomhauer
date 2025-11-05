@@ -3,11 +3,21 @@ import json
 import os
 from dotenv import load_dotenv
 
+def load_config(config_file: str = "config.json"):
+    """Load configuration from JSON file"""
+    with open(config_file, 'r', encoding='utf-8') as f:
+        config = json.load(f)
+    return config
+
 def get_weather(lat, lon):
 	load_dotenv()
 	OPEN_WEATHER_TOKEN = os.getenv("OPEN_WEATHER_TOKEN")
 	BASE_URL = "https://api.openweathermap.org/data/3.0/onecall"
 	api_key = OPEN_WEATHER_TOKEN
+
+	config = load_config()
+	lat = config.get("lat")
+	lon = config.get("lon")
 
 	headers = {
 	    "Authorization": f"Bearer {api_key}",
