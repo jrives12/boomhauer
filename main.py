@@ -5,6 +5,7 @@ import discord
 from flask import Flask, request, jsonify
 from dotenv import load_dotenv
 from noaa_tides_currents import get_tide
+from weather import get_weather
 
 load_dotenv()
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
