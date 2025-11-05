@@ -4,8 +4,8 @@ import threading
 import discord
 from flask import Flask, request, jsonify
 from dotenv import load_dotenv
-from noaa_tides_currents import get_tide
-from weather import get_weather
+#from noaa_tides_currents import get_tide
+#from weather import get_weather
 
 load_dotenv()
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
@@ -18,24 +18,23 @@ intents.messages = True
 intents.message_content = True
 client = discord.Client(intents=intents)
 
-@app.route("/sms", methods=["POST"])
-def receive_sms():
+@app.route("/send", methods=["POST"])
+def receive_send():
     body = request.form.get("Body", "")
     msg = f"{body}"
     send_message(msg)
+    return jsonify({"status": "received"})
 
 def send_message(msg):
     channel = client.get_channel(CHANNEL_ID)
-        if channel:
-            asyncio.run_coroutine_threadsafe(channel.send(msg), client.loop)
-        return jsonify({"status": "received"})
+    if channel:
+        asyncio.run_coroutine_threadsafe(channel.send(msg), client.loop)
 
 @client.event
 async def on_message(message):
     if message.author == client.user:
         return
     print(f" {message.content}")
-    get_all_data()
 
 def run_flask():
     app.run(port=5000, debug=False)
