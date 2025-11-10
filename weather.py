@@ -9,7 +9,7 @@ def load_config(config_file: str = "config.json"):
         config = json.load(f)
     return config
 
-def get_weather(lat, lon):
+def get_weather():
 	load_dotenv()
 	OPEN_WEATHER_TOKEN = os.getenv("OPEN_WEATHER_TOKEN")
 	BASE_URL = "https://api.openweathermap.org/data/3.0/onecall"
@@ -39,5 +39,3 @@ def get_weather(lat, lon):
 	    encoding = response.info().get_content_charset('utf-8')
 	    result = json.loads(data.decode(encoding))
 	return result
-
-print(get_weather(32, -72))
