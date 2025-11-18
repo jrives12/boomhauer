@@ -13,6 +13,14 @@
   "use_current_date": true,
   "days_ahead": 7,
   "lat": "32.7808",
-  "lon": "-79.9236"
+  "lon": "-79.9236",
+  "user_preferences": {
+    "491416549526208527": {
+      "zip_code": "32.7808,-79.9236",
+      "daily_report_time": "12:00",
+      "daily_report_time_range": "12 PM - 3 PM",
+      "daily_report_enabled": true,
+      "daily_report_channel": 1434620646851088435
+    }
+  }
 }
-
