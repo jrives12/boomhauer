@@ -1,7 +1,14 @@
 import urllib.request
+import urllib.parse
 import json
 import os
-from dotenv import load_dotenv
+
+# Try to load dotenv, but don't fail if it's not available
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass  # dotenv not available, environment variables must be set another way
 
 def load_config(config_file: str = "config.json"):
     """Load configuration from JSON file"""
@@ -10,7 +17,12 @@ def load_config(config_file: str = "config.json"):
     return config
 
 def get_weather():
-	load_dotenv()
+	# Try to load dotenv if available
+	try:
+		load_dotenv()
+	except NameError:
+		pass  # load_dotenv not available
+	
 	OPEN_WEATHER_TOKEN = os.getenv("OPEN_WEATHER_TOKEN")
 	BASE_URL = "https://api.openweathermap.org/data/3.0/onecall"
 	api_key = OPEN_WEATHER_TOKEN

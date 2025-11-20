@@ -5,12 +5,21 @@ from discord import app_commands
 from discord.ext import tasks
 import json
 import re
+import logging
 from datetime import datetime
 from dotenv import load_dotenv
+from call_gemini import get_fishing_report, get_fishing_report_time_window, get_fishing_report_weekly, get_species_recommendations_gemini
 
 load_dotenv()
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 CHANNEL_ID = int(os.getenv("CHANNEL_ID"))
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+logger = logging.getLogger(__name__)
 
 CONFIG_FILE = "config.json"
 
@@ -43,164 +52,88 @@ def set_user_pref(user_id, key, value):
     save_config(config)
 
 def get_location(user_id=None, zip_code=None):
-    """Get location (zip_code) with fallback to config.json lat/lon"""
     if zip_code:
         return zip_code
-    
     if user_id:
         zip_code = get_user_pref(user_id, "zip_code")
         if zip_code:
             return zip_code
-    
     config = load_config()
     if "lat" in config and "lon" in config:
         return f"{config['lat']},{config['lon']}"
-    
     return None
 
-# Placeholder functions - these will be implemented later
 async def get_today_report(zip_code=None, fishing_type=None):
-    # TODO: Implement this function
-    return f"""🎣 **Today's Fishing Report** ({zip_code or 'Location'})
-    
-**Weather:** Partly cloudy, 72°F, Wind: 8 mph SW
-**Tide:** High at 6:23 AM (4.2 ft), Low at 12:45 PM (1.8 ft)
-**Fish Activity:** Moderate - Best bite window: 5:30-8:00 AM
-**Recommended:** Live bait, bottom fishing
-**Fishing Type:** {fishing_type or 'All types'}"""
+    logger.info(f"Requesting today's report - location: {zip_code}, type: {fishing_type}")
+    loop = asyncio.get_event_loop()
+    try:
+        result = await loop.run_in_executor(None, get_fishing_report, zip_code, fishing_type)
+        logger.info("Today's report completed")
+        return result
+    except Exception as e:
+        logger.error(f"Today's report failed: {str(e)}")
+        return f"❌ Error: {str(e)}"
+
+async def get_tomorrow_report(zip_code=None, fishing_type=None):
+    from datetime import timedelta
+    tomorrow = datetime.now() + timedelta(days=1)
+    tomorrow_str = tomorrow.strftime("%Y-%m-%d")
+    start = f"{tomorrow_str} 00:00"
+    end = f"{tomorrow_str} 23:59"
+    logger.info(f"Requesting tomorrow's report - location: {zip_code}, type: {fishing_type}")
+    return await get_time_window_report(start, end, zip_code, fishing_type)
 
 async def get_time_window_report(start_time, end_time, zip_code=None, fishing_type=None):
-    # TODO: Implement this function
-    return f"""📅 **Forecast Report** ({start_time} to {end_time})
-    
-**Location:** {zip_code or 'Not specified'}
-**Conditions:** Clear skies, 68-75°F, Light winds
-**Tide Schedule:**
-  - {start_time}: Rising tide (2.1 ft)
-  - {end_time}: High tide (3.8 ft)
-**Best Times:** Early morning (6-8 AM), Evening (6-8 PM)
-**Fishing Type:** {fishing_type or 'All types'}"""
+    logger.info(f"Requesting time window report - {start_time} to {end_time}, location: {zip_code}")
+    loop = asyncio.get_event_loop()
+    try:
+        result = await loop.run_in_executor(None, get_fishing_report_time_window, start_time, end_time, zip_code, fishing_type)
+        logger.info("Time window report completed")
+        return result
+    except Exception as e:
+        logger.error(f"Time window report failed: {str(e)}")
+        return f"❌ Error: {str(e)}"
 
 async def get_weekly_report(zip_code=None, fishing_type=None):
-    # TODO: Implement this function
-    return f"""📊 **Weekly Fishing Summary**
-    
-**Best Days:** Tuesday, Thursday, Saturday
-**Overall Conditions:** Good fishing expected
-**Weather Outlook:** Mostly sunny, temps 70-78°F
-**Tide Patterns:** Favorable tides mid-week
-**Top Species:** Redfish, Trout, Flounder
-**Fishing Type:** {fishing_type or 'All types'}
-**Location:** {zip_code or 'Not specified'}"""
-
-def get_fish_species_by_location(location):
-    # TODO: Implement this function to fetch real data from iNaturalist API
-    # Parse location - could be zipcode or "lat,lon"
-    if ',' in location:
-        try:
-            lat, lon = location.split(',')
-            lat = float(lat.strip())
-            lon = float(lon.strip())
-        except ValueError:
-            lat, lon = 32.7808, -79.9236
-    else:
-        config = load_config()
-        if "lat" in config and "lon" in config:
-            lat = float(config["lat"])
-            lon = float(config["lon"])
-        else:
-            lat, lon = 32.7808, -79.9236
-    
-    # Return fake data
-    fake_species = [
-        {"species": "Sciaenops ocellatus", "common_name": "Red Drum", "count": 1245},
-        {"species": "Cynoscion nebulosus", "common_name": "Spotted Seatrout", "count": 892},
-        {"species": "Paralichthys lethostigma", "common_name": "Southern Flounder", "count": 654},
-        {"species": "Mugil cephalus", "common_name": "Striped Mullet", "count": 523},
-        {"species": "Pomatomus saltatrix", "common_name": "Bluefish", "count": 412},
-        {"species": "Micropterus salmoides", "common_name": "Largemouth Bass", "count": 389},
-        {"species": "Archosargus probatocephalus", "common_name": "Sheepshead", "count": 321},
-        {"species": "Lagodon rhomboides", "common_name": "Pinfish", "count": 287},
-        {"species": "Leiostomus xanthurus", "common_name": "Spot", "count": 245},
-        {"species": "Cynoscion regalis", "common_name": "Weakfish", "count": 198},
-        {"species": "Centropristis striata", "common_name": "Black Sea Bass", "count": 176},
-        {"species": "Anguilla rostrata", "common_name": "American Eel", "count": 154}
-    ]
-    
-    return {
-        "location": {"lat": lat, "lon": lon},
-        "total_observations": sum(f["count"] for f in fake_species),
-        "species_found": len(fake_species),
-        "fish_species": fake_species
-    }
+    logger.info(f"Requesting weekly report - location: {zip_code}, type: {fishing_type}")
+    loop = asyncio.get_event_loop()
+    try:
+        result = await loop.run_in_executor(None, get_fishing_report_weekly, zip_code, fishing_type)
+        logger.info("Weekly report completed")
+        return result
+    except Exception as e:
+        logger.error(f"Weekly report failed: {str(e)}")
+        return f"❌ Error: {str(e)}"
 
 async def get_species_recommendations(species_name, zip_code=None, fishing_type=None):
-    # TODO: Implement this function
-    if not species_name:
-        # If no species specified, return local fish species
-        fish_data = get_fish_species_by_location(zip_code)
-        
-        if not fish_data:
-            return f"❌ Could not retrieve fish species data for location: {zip_code or 'Not specified'}"
-        
-        species_list = fish_data.get("fish_species", [])
-        if not species_list:
-            return f"🐟 **Local Fish Species**\n\nNo fish species found in this area.\n\n**Location:** {zip_code or 'Not specified'}"
-        
-        # Format the species list
-        species_text = "**Local Fish Species Found:**\n\n"
-        for i, fish in enumerate(species_list[:15], 1):
-            common_name = fish.get("common_name", fish.get("species", "Unknown"))
-            species_name_full = fish.get("species", "Unknown")
-            count = fish.get("count", 0)
-            
-            if common_name != species_name_full:
-                species_text += f"{i}. **{common_name}** (*{species_name_full}*)\n"
-            else:
-                species_text += f"{i}. **{species_name_full}**\n"
-            species_text += f"   📊 Observations: {count}\n\n"
-        
-        species_text += f"**Total Species:** {fish_data.get('species_found', 0)}\n"
-        species_text += f"**Total Observations:** {fish_data.get('total_observations', 0)}\n"
-        species_text += f"**Location:** {zip_code or 'Not specified'}\n"
-        species_text += f"**Fishing Type:** {fishing_type or 'All types'}"
-        
-        return species_text
-    
-    # If species name provided, return recommendations for that species
-    return f"""🐟 **{species_name} Recommendations**
-    
-**Best Conditions:**
-  - Water Temp: 65-75°F
-  - Tide: Incoming/Outgoing
-  - Time: Dawn/Dusk
-  
-**Tactics:**
-  - Bait: Live shrimp, cut bait
-  - Technique: Bottom fishing, jigging
-  - Depth: 10-20 feet
-  
-**Bite Windows:**
-  - Morning: 5:30-8:00 AM ⭐⭐⭐
-  - Evening: 6:00-8:30 PM ⭐⭐⭐
-  - Midday: 11:00 AM-2:00 PM ⭐
-  
-**Location:** {zip_code or 'Not specified'}
-**Fishing Type:** {fishing_type or 'All types'}"""
+    logger.info(f"Requesting species recommendations - species: {species_name or 'all'}, location: {zip_code}")
+    loop = asyncio.get_event_loop()
+    try:
+        result = await loop.run_in_executor(None, get_species_recommendations_gemini, species_name, zip_code, fishing_type)
+        logger.info("Species recommendations completed")
+        return result
+    except Exception as e:
+        logger.error(f"Species recommendations failed: {str(e)}")
+        return f"❌ Error: {str(e)}"
 
 async def send_daily_report(user_id, channel_id):
     """Send automatic daily report"""
+    logger.info(f"Sending daily report to user {user_id} in channel {channel_id}")
     zip_code = get_location(user_id)
     fishing_type = get_user_pref(user_id, "fishing_type")
     report_time = get_user_pref(user_id, "daily_report_time")
     
     if not zip_code:
+        logger.warning(f"Cannot send daily report to user {user_id} - no location set")
         return
     
     report = await get_today_report(zip_code, fishing_type)
     channel = bot.get_channel(channel_id)
     if channel:
         await channel.send(f"<@{user_id}> Daily Fishing Report:\n{report}")
+        logger.info(f"Daily report sent successfully to user {user_id}")
+    else:
+        logger.error(f"Channel {channel_id} not found for daily report to user {user_id}")
 
 # Discord Bot Setup
 intents = discord.Intents.default()
@@ -225,6 +158,8 @@ fish_group = app_commands.Group(name="fish", description="Fishing report command
 async def fish_today(interaction: discord.Interaction, zip_code: str = None, fishing_type: app_commands.Choice[str] = None):
     """Get full report for current day"""
     user_id = interaction.user.id
+    username = interaction.user.name
+    logger.info(f"Command /fish today - User: {username} (ID: {user_id}), zip_code: {zip_code}, type: {fishing_type}")
     
     zip_code = get_location(user_id, zip_code)
     if not fishing_type:
@@ -233,15 +168,60 @@ async def fish_today(interaction: discord.Interaction, zip_code: str = None, fis
         fishing_type = fishing_type.value
     
     if not zip_code:
-        await interaction.response.send_message(
-            "❌ Please set your ZIP code first using `/fish set zip <zip>` or configure location in config.json.",
-            ephemeral=True
-        )
+        logger.warning(f"User {username} attempted /fish today without location")
+        await interaction.response.send_message("❌ Please set your ZIP code first.", ephemeral=True)
         return
     
-    await interaction.response.defer()
-    report = await get_today_report(zip_code, fishing_type)
-    await interaction.followup.send(report)
+    await interaction.response.defer(thinking=True)
+    try:
+        report = await get_today_report(zip_code, fishing_type)
+        if len(report) > 2000:
+            logger.warning(f"Report truncated for user {username} (length: {len(report)})")
+            report = report[:1950] + "\n\n... (truncated)"
+        await interaction.followup.send(report)
+        logger.info(f"Successfully sent today's report to {username}")
+    except Exception as e:
+        logger.error(f"Failed to send report to {username}: {str(e)}")
+        await interaction.followup.send(f"❌ Error: {str(e)}", ephemeral=True)
+
+@fish_group.command(name="tomorrow", description="Get full report for tomorrow (weather, tide, fish activity)")
+@app_commands.describe(
+    zip_code="ZIP code for location (optional if already set)",
+    fishing_type="Fishing type: shore, boat, or kayak (optional if already set)"
+)
+@app_commands.choices(fishing_type=[
+    app_commands.Choice(name="shore", value="shore"),
+    app_commands.Choice(name="boat", value="boat"),
+    app_commands.Choice(name="kayak", value="kayak")
+])
+async def fish_tomorrow(interaction: discord.Interaction, zip_code: str = None, fishing_type: app_commands.Choice[str] = None):
+    """Get full report for tomorrow"""
+    user_id = interaction.user.id
+    username = interaction.user.name
+    logger.info(f"Command /fish tomorrow - User: {username} (ID: {user_id}), zip_code: {zip_code}, type: {fishing_type}")
+    
+    zip_code = get_location(user_id, zip_code)
+    if not fishing_type:
+        fishing_type = get_user_pref(user_id, "fishing_type")
+    else:
+        fishing_type = fishing_type.value
+    
+    if not zip_code:
+        logger.warning(f"User {username} attempted /fish tomorrow without location")
+        await interaction.response.send_message("❌ Please set your ZIP code first.", ephemeral=True)
+        return
+    
+    await interaction.response.defer(thinking=True)
+    try:
+        report = await get_tomorrow_report(zip_code, fishing_type)
+        if len(report) > 2000:
+            logger.warning(f"Report truncated for user {username} (length: {len(report)})")
+            report = report[:1950] + "\n\n... (truncated)"
+        await interaction.followup.send(report)
+        logger.info(f"Successfully sent tomorrow's report to {username}")
+    except Exception as e:
+        logger.error(f"Failed to send report to {username}: {str(e)}")
+        await interaction.followup.send(f"❌ Error: {str(e)}", ephemeral=True)
 
 @fish_group.command(name="daily", description="Get automatic morning report at configured time")
 @app_commands.describe(
@@ -257,6 +237,8 @@ async def fish_today(interaction: discord.Interaction, zip_code: str = None, fis
 async def fish_daily(interaction: discord.Interaction, time_range: str, zip_code: str = None, fishing_type: app_commands.Choice[str] = None):
     """Set up automatic daily report"""
     user_id = interaction.user.id
+    username = interaction.user.name
+    logger.info(f"Command /fish daily - User: {username} (ID: {user_id}), time_range: {time_range}, zip_code: {zip_code}")
     
     zip_code = get_location(user_id, zip_code)
     if not fishing_type:
@@ -265,13 +247,9 @@ async def fish_daily(interaction: discord.Interaction, time_range: str, zip_code
         fishing_type = fishing_type.value
     
     if not zip_code:
-        await interaction.response.send_message(
-            "❌ Please set your ZIP code first using `/fish set zip <zip>` or configure location in config.json.",
-            ephemeral=True
-        )
+        await interaction.response.send_message("❌ Please set your ZIP code first.", ephemeral=True)
         return
     
-    # Parse time range (e.g., "12 PM - 3 PM" or "8 AM - 10 AM")
     time_pattern = r'(\d+)\s*(AM|PM)\s*-\s*(\d+)\s*(AM|PM)'
     match = re.match(time_pattern, time_range.upper().strip())
     
@@ -287,7 +265,6 @@ async def fish_daily(interaction: discord.Interaction, time_range: str, zip_code
     end_hour = int(match.group(3))
     end_period = match.group(4)
     
-    # Convert to 24-hour format
     if start_period == "PM" and start_hour != 12:
         start_hour += 12
     elif start_period == "AM" and start_hour == 12:
@@ -312,7 +289,6 @@ async def fish_daily(interaction: discord.Interaction, time_range: str, zip_code
         )
         return
     
-    # Save daily report settings (use start time for the report)
     set_user_pref(user_id, "zip_code", zip_code)
     if fishing_type:
         set_user_pref(user_id, "fishing_type", fishing_type)
@@ -321,6 +297,7 @@ async def fish_daily(interaction: discord.Interaction, time_range: str, zip_code
     set_user_pref(user_id, "daily_report_enabled", True)
     set_user_pref(user_id, "daily_report_channel", interaction.channel_id)
     
+    logger.info(f"Daily report configured for user {username} - time: {time_range}, location: {zip_code}")
     await interaction.response.send_message(
         f"✅ Daily fishing report configured!\n"
         f"**ZIP Code:** {zip_code}\n"
@@ -331,8 +308,10 @@ async def fish_daily(interaction: discord.Interaction, time_range: str, zip_code
 
 @fish_group.command(name="time", description="Get forecast for custom time window")
 @app_commands.describe(
-    start="Start time (format: YYYY-MM-DD HH:MM)",
-    end="End time (format: YYYY-MM-DD HH:MM)",
+    start="Start time (e.g., '3pm', '15:00', '3 PM')",
+    end="End time (e.g., '5pm', '17:00', '5 PM')",
+    start_date="Start date (optional, format: YYYY-MM-DD, defaults to today)",
+    end_date="End date (optional, format: YYYY-MM-DD, defaults to today)",
     zip_code="ZIP code for location (optional if already set)",
     fishing_type="Fishing type: shore, boat, or kayak (optional if already set)"
 )
@@ -341,9 +320,12 @@ async def fish_daily(interaction: discord.Interaction, time_range: str, zip_code
     app_commands.Choice(name="boat", value="boat"),
     app_commands.Choice(name="kayak", value="kayak")
 ])
-async def fish_time(interaction: discord.Interaction, start: str, end: str, zip_code: str = None, fishing_type: app_commands.Choice[str] = None):
+async def fish_time(interaction: discord.Interaction, start: str, end: str, start_date: str = None, end_date: str = None, zip_code: str = None, fishing_type: app_commands.Choice[str] = None):
     """Get forecast for custom time window"""
     user_id = interaction.user.id
+    username = interaction.user.name
+    date_info = f", dates: {start_date or 'today'} to {end_date or 'today'}" if start_date or end_date else ""
+    logger.info(f"Command /fish time - User: {username} (ID: {user_id}), window: {start} to {end}{date_info}, zip_code: {zip_code}")
     
     zip_code = get_location(user_id, zip_code)
     if not fishing_type:
@@ -352,29 +334,89 @@ async def fish_time(interaction: discord.Interaction, start: str, end: str, zip_
         fishing_type = fishing_type.value
     
     if not zip_code:
-        await interaction.response.send_message(
-            "❌ Please set your ZIP code first using `/fish set zip <zip>` or configure location in config.json.",
-            ephemeral=True
-        )
+        logger.warning(f"User {username} attempted /fish time without location")
+        await interaction.response.send_message("❌ Please set your ZIP code first.", ephemeral=True)
         return
     
     try:
-        start_dt = datetime.strptime(start, "%Y-%m-%d %H:%M")
-        end_dt = datetime.strptime(end, "%Y-%m-%d %H:%M")
         
-        if end_dt <= start_dt:
-            await interaction.response.send_message(
-                "❌ End time must be after start time.",
-                ephemeral=True
-            )
-            return
+        def parse_time(time_str, date_str=None):
+            time_str = time_str.strip().upper()
+            
+            
+            if date_str:
+                try:
+                    base_date = datetime.strptime(date_str, "%Y-%m-%d")
+                except ValueError:
+                    raise ValueError(f"Invalid date format: {date_str}. Use YYYY-MM-DD")
+            else:
+                base_date = datetime.now()
+            
+            
+            if "PM" in time_str or "AM" in time_str:
+                
+                time_str_clean = time_str.replace(" ", "")
+                if ":" in time_str_clean:
+                    
+                    if "PM" in time_str_clean:
+                        time_part = time_str_clean.replace("PM", "")
+                        hour, minute = map(int, time_part.split(":"))
+                        if hour != 12:
+                            hour += 12
+                    else:  
+                        time_part = time_str_clean.replace("AM", "")
+                        hour, minute = map(int, time_part.split(":"))
+                        if hour == 12:
+                            hour = 0
+                else:
+                    
+                    if "PM" in time_str_clean:
+                        hour = int(time_str_clean.replace("PM", ""))
+                        if hour != 12:
+                            hour += 12
+                        minute = 0
+                    else:  
+                        hour = int(time_str_clean.replace("AM", ""))
+                        if hour == 12:
+                            hour = 0
+                        minute = 0
+            else:
+                
+                if ":" in time_str:
+                    hour, minute = map(int, time_str.split(":"))
+                else:
+                    hour = int(time_str)
+                    minute = 0
+            
+            return base_date.replace(hour=hour, minute=minute, second=0, microsecond=0)
         
-        await interaction.response.defer()
-        report = await get_time_window_report(start, end, zip_code, fishing_type)
-        await interaction.followup.send(report)
-    except ValueError:
+        start_dt = parse_time(start, start_date)
+        end_dt = parse_time(end, end_date)
+        
+        
+        if end_dt <= start_dt and (start_date == end_date or (start_date is None and end_date is None)):
+            from datetime import timedelta
+            end_dt = end_dt + timedelta(days=1)
+        
+        
+        start_formatted = start_dt.strftime("%Y-%m-%d %H:%M")
+        end_formatted = end_dt.strftime("%Y-%m-%d %H:%M")
+        
+        await interaction.response.defer(thinking=True)
+        try:
+            report = await get_time_window_report(start_formatted, end_formatted, zip_code, fishing_type)
+            if len(report) > 2000:
+                logger.warning(f"Report truncated for user {username} (length: {len(report)})")
+                report = report[:1950] + "\n\n... (truncated)"
+            await interaction.followup.send(report)
+            logger.info(f"Successfully sent time window report to {username}")
+        except Exception as e:
+            logger.error(f"Failed to send time window report to {username}: {str(e)}")
+            await interaction.followup.send(f"❌ Error: {str(e)}", ephemeral=True)
+    except (ValueError, AttributeError) as e:
+        logger.warning(f"User {username} provided invalid time format: {str(e)}")
         await interaction.response.send_message(
-            "❌ Invalid time format. Please use: YYYY-MM-DD HH:MM (e.g., 2024-01-15 08:00)",
+            "❌ Invalid time format. Please use formats like: '3pm', '3 PM', '15:00', or '3:00 PM'",
             ephemeral=True
         )
 
@@ -391,6 +433,8 @@ async def fish_time(interaction: discord.Interaction, start: str, end: str, zip_
 async def fish_week(interaction: discord.Interaction, zip_code: str = None, fishing_type: app_commands.Choice[str] = None):
     """Get weekly summary"""
     user_id = interaction.user.id
+    username = interaction.user.name
+    logger.info(f"Command /fish week - User: {username} (ID: {user_id}), zip_code: {zip_code}, type: {fishing_type}")
     
     zip_code = get_location(user_id, zip_code)
     if not fishing_type:
@@ -399,15 +443,21 @@ async def fish_week(interaction: discord.Interaction, zip_code: str = None, fish
         fishing_type = fishing_type.value
     
     if not zip_code:
-        await interaction.response.send_message(
-            "❌ Please set your ZIP code first using `/fish set zip <zip>` or configure location in config.json.",
-            ephemeral=True
-        )
+        logger.warning(f"User {username} attempted /fish week without location")
+        await interaction.response.send_message("❌ Please set your ZIP code first.", ephemeral=True)
         return
     
-    await interaction.response.defer()
-    report = await get_weekly_report(zip_code, fishing_type)
-    await interaction.followup.send(report)
+    await interaction.response.defer(thinking=True)
+    try:
+        report = await get_weekly_report(zip_code, fishing_type)
+        if len(report) > 2000:
+            logger.warning(f"Report truncated for user {username} (length: {len(report)})")
+            report = report[:1950] + "\n\n... (truncated)"
+        await interaction.followup.send(report)
+        logger.info(f"Successfully sent weekly report to {username}")
+    except Exception as e:
+        logger.error(f"Failed to send weekly report to {username}: {str(e)}")
+        await interaction.followup.send(f"❌ Error: {str(e)}", ephemeral=True)
 
 @fish_group.command(name="set", description="Save your default fishing location + style")
 @app_commands.describe(
@@ -422,11 +472,14 @@ async def fish_week(interaction: discord.Interaction, zip_code: str = None, fish
 async def fish_set(interaction: discord.Interaction, zip_code: str, fishing_type: app_commands.Choice[str] = None):
     """Save user preferences"""
     user_id = interaction.user.id
+    username = interaction.user.name
+    logger.info(f"Command /fish set - User: {username} (ID: {user_id}), zip_code: {zip_code}, type: {fishing_type}")
     
     set_user_pref(user_id, "zip_code", zip_code)
     if fishing_type:
         set_user_pref(user_id, "fishing_type", fishing_type.value)
     
+    logger.info(f"Preferences saved for user {username}")
     await interaction.response.send_message(
         f"✅ Preferences saved!\n"
         f"**ZIP Code:** {zip_code}\n"
@@ -447,6 +500,8 @@ async def fish_set(interaction: discord.Interaction, zip_code: str, fishing_type
 async def fish_species(interaction: discord.Interaction, species: str = None, zip_code: str = None, fishing_type: app_commands.Choice[str] = None):
     """Get local fish species based on location"""
     user_id = interaction.user.id
+    username = interaction.user.name
+    logger.info(f"Command /fish species - User: {username} (ID: {user_id}), species: {species or 'all'}, zip_code: {zip_code}")
     
     zip_code = get_location(user_id, zip_code)
     if not fishing_type:
@@ -455,27 +510,32 @@ async def fish_species(interaction: discord.Interaction, species: str = None, zi
         fishing_type = fishing_type.value
     
     if not zip_code:
-        await interaction.response.send_message(
-            "❌ Please set your ZIP code first using `/fish set zip <zip>` or configure location in config.json.",
-            ephemeral=True
-        )
+        logger.warning(f"User {username} attempted /fish species without location")
+        await interaction.response.send_message("❌ Please set your ZIP code first.", ephemeral=True)
         return
     
-    await interaction.response.defer()
-    report = await get_species_recommendations(species, zip_code, fishing_type)
-    await interaction.followup.send(report)
+    await interaction.response.defer(thinking=True)
+    try:
+        report = await get_species_recommendations(species, zip_code, fishing_type)
+        if len(report) > 2000:
+            logger.warning(f"Report truncated for user {username} (length: {len(report)})")
+            report = report[:1950] + "\n\n... (truncated)"
+        await interaction.followup.send(report)
+        logger.info(f"Successfully sent species recommendations to {username}")
+    except Exception as e:
+        logger.error(f"Failed to send species recommendations to {username}: {str(e)}")
+        await interaction.followup.send(f"❌ Error: {str(e)}", ephemeral=True)
 
 # Register the command group
 tree.add_command(fish_group)
 
 @bot.event
 async def on_ready():
-    print(f'{bot.user} has logged in!')
+    logger.info(f"Bot logged in as {bot.user}")
     await tree.sync()
-    print("Slash commands synced!")
-    
-    # Start daily report task if needed
+    logger.info("Slash commands synced successfully")
     check_daily_reports.start()
+    logger.info("Daily report task started")
 
 @tasks.loop(minutes=60)
 async def check_daily_reports():
@@ -485,14 +545,20 @@ async def check_daily_reports():
     
     config = load_config()
     user_prefs = config.get("user_preferences", {})
+    enabled_count = sum(1 for u in user_prefs.values() if u.get("daily_report_enabled", False))
+    logger.debug(f"Checking daily reports at {current_time} - {enabled_count} users have reports enabled")
+    
     for user_id_str, user_data in user_prefs.items():
         if user_data.get("daily_report_enabled", False):
             report_time = user_data.get("daily_report_time")
             if report_time == current_time:
                 user_id = int(user_id_str)
                 channel_id = user_data.get("daily_report_channel")
+                logger.info(f"Triggering daily report for user {user_id} at {report_time}")
                 if channel_id:
                     await send_daily_report(user_id, channel_id)
+                else:
+                    logger.warning(f"No channel ID set for user {user_id} daily report")
 
 @check_daily_reports.before_loop
 async def before_check_daily_reports():

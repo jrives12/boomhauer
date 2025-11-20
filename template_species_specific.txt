@@ -1,0 +1,50 @@
+🐟 **Species-Specific Recommendations**
+
+🎯 **Species:** [Target species]  
+📍 **Location:** [Location]  
+🎣 **Type:** [Fishing type]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⏰ **Best Times:**
+
+**• [Time Window 1]** ⭐⭐⭐  
+   *[ONE SENTENCE ONLY - conditions and activity]*
+
+**• [Time Window 2]** ⭐⭐  
+   *[ONE SENTENCE ONLY - conditions and activity]*
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🌡️ **Optimal Conditions:**
+```
+💧 Water Temp: [Range]
+🌊 Tide:       [Best stages]
+☁️ Weather:    [Ideal]
+💨 Wind:       [Optimal]
+```
+
+🎯 **Tactics:**
+```
+🪱 Bait:       [Baits]
+🎣 Technique:  [Techniques]
+📏 Depth:      [Range]
+```
+
+📍 **Best Locations for [Fishing Type]:**
+• [Location recommendation 1 - specific to fishing type and species]
+• [Location recommendation 2 - specific to fishing type and species]
+
+🚤 **Launch/Put-in Spots:** (if boat or kayak)
+• [Launch location 1 - boat ramp, kayak launch, or access point]
+• [Launch location 2 - boat ramp, kayak launch, or access point]
+
+⏰ **Bite Windows:**
+• [Time 1] ⭐⭐⭐
+• [Time 2] ⭐⭐
+• [Time 3] ⭐
+
+💡 **Tips:** [1-2 brief tips]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+

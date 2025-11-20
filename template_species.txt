@@ -1,0 +1,39 @@
+🐟 **Fish Species Information**
+
+📍 **Location:** [Location]  
+🎣 **Fishing Type:** [Type]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+**Local Species (Top 5):**
+
+**1.** **[Common Name]** *([Scientific Name])*  
+    Obs: [Count] | Times: [Best times]  
+   *[Brief tip]*
+
+**2.** **[Common Name]** *([Scientific Name])*  
+    Obs: [Count] | Times: [Best times]  
+   *[Brief tip]*
+
+**3.** **[Common Name]** *([Scientific Name])*  
+    Obs: [Count] | Times: [Best times]  
+   *[Brief tip]*
+
+**4.** **[Common Name]** *([Scientific Name])*  
+    Obs: [Count] | Times: [Best times]  
+   *[Brief tip]*
+
+**5.** **[Common Name]** *([Scientific Name])*  
+    Obs: [Count] | Times: [Best times]  
+   *[Brief tip]*
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📊 **Summary:**
+```
+📈 Total:        [Number] species
+🔢 Observations: [Count]
+🏆 Most Common:  [Species name]
+⏰ Best Time:    [Based on conditions]
+```
+
