@@ -2,16 +2,12 @@
   "station_id": "8665530",
   "data_types": [
     "water_level",
-    "currents",
-    "water_temperature",
-    "wind",
-    "air_temperature",
-    "barometric_pressure"
+    "currents"
   ],
   "units": "english",
   "time_zone": "gmt",
   "use_current_date": true,
-  "days_ahead": 7,
+  "days_ahead": 1,
   "lat": "32.7808",
   "lon": "-79.9236",
   "user_preferences": {
