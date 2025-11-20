@@ -21,6 +21,9 @@
 boomhauser-venv
 .vscode
 .devcontainer
+.cursor
+fish_env
+__pycache__
 
 
 ### NetBeans ###

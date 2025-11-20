@@ -40,7 +40,7 @@ class NOAACoOpsAPI:
             print(f"Error searching stations: {e}")
             return []
     
-    def get_station_info(self, station_id: str) -> Optional[Dict]:
+    def get_station_info(self, station_id: str, quiet: bool = False) -> Optional[Dict]:
         """Get information about a specific station"""
         try:
             # Get station metadata
@@ -54,12 +54,13 @@ class NOAACoOpsAPI:
             response.raise_for_status()
             return response.json()
         except Exception as e:
-            print(f"Error getting station info: {e}")
+            if not quiet:
+                print(f"Error getting station info: {e}")
             return None
     
     def get_water_level(self, station_id: str, begin_date: str, end_date: str,
                        datum: str = "MLLW", units: str = "metric",
-                       time_zone: str = "gmt", interval: str = "h") -> Optional[Dict]:
+                       time_zone: str = "gmt", interval: str = "h", quiet: bool = False) -> Optional[Dict]:
         """
         Retrieve water level (tide) data
         
@@ -90,12 +91,13 @@ class NOAACoOpsAPI:
             response.raise_for_status()
             return response.json()
         except Exception as e:
-            print(f"Error retrieving water level data: {e}")
+            if not quiet:
+                print(f"Error retrieving water level data: {e}")
             return None
     
     def get_currents(self, station_id: str, begin_date: str, end_date: str,
                     units: str = "metric", time_zone: str = "gmt",
-                    bin: int = 1) -> Optional[Dict]:
+                    bin: int = 1, quiet: bool = False) -> Optional[Dict]:
         """
         Retrieve current data
         
@@ -106,6 +108,7 @@ class NOAACoOpsAPI:
             units: Units (metric or english)
             time_zone: Time zone (gmt, lst, lst_ldt)
             bin: Bin number (usually 1 for surface currents)
+            quiet: If True, suppress error messages
         """
         try:
             url = f"{self.BASE_URL}/datagetter"
@@ -124,12 +127,13 @@ class NOAACoOpsAPI:
             response.raise_for_status()
             return response.json()
         except Exception as e:
-            print(f"Error retrieving current data: {e}")
+            if not quiet:
+                print(f"Error retrieving current data: {e}")
             return None
     
     def get_water_temperature(self, station_id: str, begin_date: str, end_date: str,
                              units: str = "metric", time_zone: str = "gmt",
-                             interval: str = "h") -> Optional[Dict]:
+                             interval: str = "h", quiet: bool = False) -> Optional[Dict]:
         """
         Retrieve water temperature data
         
@@ -158,12 +162,13 @@ class NOAACoOpsAPI:
             response.raise_for_status()
             return response.json()
         except Exception as e:
-            print(f"Error retrieving water temperature data: {e}")
+            if not quiet:
+                print(f"Error retrieving water temperature data: {e}")
             return None
     
     def get_wind(self, station_id: str, begin_date: str, end_date: str,
                 units: str = "metric", time_zone: str = "gmt",
-                interval: str = "h") -> Optional[Dict]:
+                interval: str = "h", quiet: bool = False) -> Optional[Dict]:
         """Retrieve wind data"""
         try:
             url = f"{self.BASE_URL}/datagetter"
@@ -182,12 +187,13 @@ class NOAACoOpsAPI:
             response.raise_for_status()
             return response.json()
         except Exception as e:
-            print(f"Error retrieving wind data: {e}")
+            if not quiet:
+                print(f"Error retrieving wind data: {e}")
             return None
     
     def get_air_temperature(self, station_id: str, begin_date: str, end_date: str,
                            units: str = "metric", time_zone: str = "gmt",
-                           interval: str = "h") -> Optional[Dict]:
+                           interval: str = "h", quiet: bool = False) -> Optional[Dict]:
         """Retrieve air temperature data"""
         try:
             url = f"{self.BASE_URL}/datagetter"
@@ -206,12 +212,13 @@ class NOAACoOpsAPI:
             response.raise_for_status()
             return response.json()
         except Exception as e:
-            print(f"Error retrieving air temperature data: {e}")
+            if not quiet:
+                print(f"Error retrieving air temperature data: {e}")
             return None
     
     def get_barometric_pressure(self, station_id: str, begin_date: str, end_date: str,
                                units: str = "metric", time_zone: str = "gmt",
-                               interval: str = "h") -> Optional[Dict]:
+                               interval: str = "h", quiet: bool = False) -> Optional[Dict]:
         """Retrieve barometric pressure data"""
         try:
             url = f"{self.BASE_URL}/datagetter"
@@ -230,7 +237,8 @@ class NOAACoOpsAPI:
             response.raise_for_status()
             return response.json()
         except Exception as e:
-            print(f"Error retrieving barometric pressure data: {e}")
+            if not quiet:
+                print(f"Error retrieving barometric pressure data: {e}")
             return None
 
 
@@ -498,41 +506,47 @@ def get_user_input():
     }
 
 
-def fetch_and_save_data(config_file: str = "config.json") -> Optional[Dict]:
+def fetch_and_save_data(config_file: str = "config.json", quiet: bool = False) -> Optional[Dict]:
     """
-    Fetch data from NOAA API and save to JSON file.
+    Fetch data from NOAA API and return it.
     
     Args:
         config_file: Path to configuration JSON file
+        quiet: If True, suppress verbose output
         
     Returns:
-        Dictionary containing the retrieved data and output filename, or None if error
+        Dictionary containing the retrieved data, or None if error
     """
     api = NOAACoOpsAPI()
     
     # Load configuration from config file
-    print("NOAA Tides and Currents Data Retrieval")
-    print("=" * 60)
-    print(f"Loading configuration from {config_file}...")
+    if not quiet:
+        print("NOAA Tides and Currents Data Retrieval")
+        print("=" * 60)
+        print(f"Loading configuration from {config_file}...")
     
     params = load_config(config_file)
     if not params:
-        print("Error: Failed to load configuration.")
+        if not quiet:
+            print("Error: Failed to load configuration.")
         return None
     
-    print(f"Station ID: {params['station_id']}")
-    print(f"Date range: {params['begin_date']} to {params['end_date']}")
-    print(f"Data types: {', '.join(params['data_types'])}")
-    print(f"Units: {params['units']}, Time zone: {params['time_zone']}")
+    if not quiet:
+        print(f"Station ID: {params['station_id']}")
+        print(f"Date range: {params['begin_date']} to {params['end_date']}")
+        print(f"Data types: {', '.join(params['data_types'])}")
+        print(f"Units: {params['units']}, Time zone: {params['time_zone']}")
     
-    # Get station info first
-    print(f"\nFetching station information for {params['station_id']}...")
-    station_info = api.get_station_info(params['station_id'])
-    if station_info:
+    # Get station info first (silently fail if it doesn't work)
+    if not quiet:
+        print(f"\nFetching station information for {params['station_id']}...")
+    station_info = api.get_station_info(params['station_id'], quiet=quiet)
+    if station_info and not quiet:
         print(f"Station found: {station_info.get('name', 'Unknown')}")
     
     # Retrieve requested data types
-    print(f"\nRetrieving data from {params['begin_date']} to {params['end_date']}...")
+    if not quiet:
+        print(f"\nRetrieving data from {params['begin_date']} to {params['end_date']}...")
     
     # Dictionary to store all retrieved data
     all_data = {
@@ -547,7 +561,8 @@ def fetch_and_save_data(config_file: str = "config.json") -> Optional[Dict]:
     }
     
     for data_type in params['data_types']:
-        print(f"\nFetching {data_type.replace('_', ' ')}...")
+        if not quiet:
+            print(f"\nFetching {data_type.replace('_', ' ')}...")
         
         try:
             if data_type == 'water_level':
@@ -556,7 +571,8 @@ def fetch_and_save_data(config_file: str = "config.json") -> Optional[Dict]:
                     params['begin_date'],
                     params['end_date'],
                     units=params['units'],
-                    time_zone=params['time_zone']
+                    time_zone=params['time_zone'],
+                    quiet=quiet
                 )
             elif data_type == 'currents':
                 data = api.get_currents(
@@ -564,7 +580,8 @@ def fetch_and_save_data(config_file: str = "config.json") -> Optional[Dict]:
                     params['begin_date'],
                     params['end_date'],
                     units=params['units'],
-                    time_zone=params['time_zone']
+                    time_zone=params['time_zone'],
+                    quiet=quiet
                 )
             elif data_type == 'water_temperature':
                 data = api.get_water_temperature(
@@ -572,7 +589,8 @@ def fetch_and_save_data(config_file: str = "config.json") -> Optional[Dict]:
                     params['begin_date'],
                     params['end_date'],
                     units=params['units'],
-                    time_zone=params['time_zone']
+                    time_zone=params['time_zone'],
+                    quiet=quiet
                 )
             elif data_type == 'wind':
                 data = api.get_wind(
@@ -580,7 +598,8 @@ def fetch_and_save_data(config_file: str = "config.json") -> Optional[Dict]:
                     params['begin_date'],
                     params['end_date'],
                     units=params['units'],
-                    time_zone=params['time_zone']
+                    time_zone=params['time_zone'],
+                    quiet=quiet
                 )
             elif data_type == 'air_temperature':
                 data = api.get_air_temperature(
@@ -588,7 +607,8 @@ def fetch_and_save_data(config_file: str = "config.json") -> Optional[Dict]:
                     params['begin_date'],
                     params['end_date'],
                     units=params['units'],
-                    time_zone=params['time_zone']
+                    time_zone=params['time_zone'],
+                    quiet=quiet
                 )
             elif data_type == 'barometric_pressure':
                 data = api.get_barometric_pressure(
@@ -596,57 +616,50 @@ def fetch_and_save_data(config_file: str = "config.json") -> Optional[Dict]:
                     params['begin_date'],
                     params['end_date'],
                     units=params['units'],
-                    time_zone=params['time_zone']
+                    time_zone=params['time_zone'],
+                    quiet=quiet
                 )
             else:
-                print(f"Unknown data type: {data_type}")
+                if not quiet:
+                    print(f"Unknown data type: {data_type}")
                 continue
             
             # Store the data
             all_data['data_types'][data_type] = data
             
-            display_data(data, data_type)
+            if not quiet:
+                display_data(data, data_type)
             
         except Exception as e:
-            print(f"Error retrieving {data_type}: {e}")
+            if not quiet:
+                print(f"Error retrieving {data_type}: {e}")
             all_data['data_types'][data_type] = {'error': str(e)}
             continue
     
-    # Save data to JSON file
-    output_filename = f"noaa_data_{params['station_id']}_{params['begin_date']}_{params['end_date']}.json"
-    try:
-        with open(output_filename, 'w', encoding='utf-8') as f:
-            json.dump(all_data, f, indent=2, ensure_ascii=False)
-        print(f"\n{'='*60}")
-        print(f"Data saved to: {output_filename}")
-        print(f"{'='*60}")
-    except Exception as e:
-        print(f"\nError saving data to JSON file: {e}")
-        return None
-    
-    print("\n" + "=" * 60)
-    print("Data retrieval complete!")
-    print("=" * 60)
+    if not quiet:
+        print("\n" + "=" * 60)
+        print("Data retrieval complete!")
+        print("=" * 60)
     
     return {
-        'data': all_data,
-        'output_file': output_filename
+        'data': all_data
     }
 
 
-def get_tide(config_file: str = "config.json") -> Optional[Dict]:
+def get_tide(config_file: str = "config.json", quiet: bool = True) -> Optional[Dict]:
     """
-    Retrieve tides and currents data from NOAA API and save to JSON file.
+    Retrieve tides and currents data from NOAA API.
     
     This function can be imported and called from other modules.
     
     Args:
         config_file: Path to configuration JSON file (default: "config.json")
+        quiet: If True, suppress verbose output (default: True)
         
     Returns:
-        Dictionary containing the retrieved data and output filename, or None if error
+        Dictionary containing the retrieved data, or None if error
     """
-    result = fetch_and_save_data(config_file)
+    result = fetch_and_save_data(config_file, quiet=quiet)
     if result is None:
         return None
     return result

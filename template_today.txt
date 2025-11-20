@@ -1,0 +1,46 @@
+🎣 **Fishing Report - Today**
+
+📍 **Location:** [Location]  
+📅 **Date:** [Current date]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⏰ **Best Times to Fish:**
+
+**• [Time Window 1]**  
+   *[ONE SENTENCE ONLY - weather, tides, currents, fish activity]*
+
+**• [Time Window 2]**  
+   *[ONE SENTENCE ONLY - weather, tides, currents, fish activity]*
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🌡️ **Conditions:**
+```
+🌡️ Air:     [Temp range]
+💧 Water:   [Temp if available]
+💨 Wind:    [Speed/direction]
+📊 Pressure: [Reading]
+☁️ Weather: [Conditions]
+🌊 Tides:   [Info if available]
+🌊 Currents: [Speed/direction if available]
+```
+
+🐟 **Top Species:** [2-3 species from fish_data]
+
+📍 **Best Locations for [Fishing Type]:**
+• [Location recommendation 1 - specific to fishing type]
+• [Location recommendation 2 - specific to fishing type]
+
+🚤 **Launch/Put-in Spots:** (if boat or kayak)
+• [Launch location 1 - boat ramp, kayak launch, or access point]
+• [Launch location 2 - boat ramp, kayak launch, or access point]
+
+💡 **Tips:**
+• [Brief tip 1]
+• [Brief tip 2]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⭐ **Rating:** [X.X] / 10
+
