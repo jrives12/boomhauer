@@ -24,6 +24,10 @@ boomhauser-venv
 .cursor
 fish_env
 __pycache__
+lib/
+lib64/
+bin/
+noaa_data*
 
 
 ### NetBeans ###

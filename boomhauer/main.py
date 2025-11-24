@@ -1,27 +1,52 @@
-import os
 import asyncio
-import discord
-from discord import app_commands
-from discord.ext import tasks
 import json
 import re
 import logging
 from datetime import datetime
 from dotenv import load_dotenv
-from call_gemini import get_fishing_report, get_fishing_report_time_window, get_fishing_report_weekly, get_species_recommendations_gemini
 
-load_dotenv()
-DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
-CHANNEL_ID = int(os.getenv("CHANNEL_ID"))
+if __name__ == "__main__":
+    import discord
+    from discord import app_commands
+    from discord.ext import tasks
+    from call_gemini import get_fishing_report, get_fishing_report_time_window, get_fishing_report_weekly, get_species_recommendations_gemini
+    import os
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S'
-)
-logger = logging.getLogger(__name__)
+    load_dotenv()
+    DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
+    CHANNEL_ID = int(os.getenv("CHANNEL_ID"))
 
-CONFIG_FILE = "config.json"
+    # Discord Bot Setup
+    intents = discord.Intents.default()
+    intents.messages = True
+    intents.message_content = True
+    bot = discord.Client(intents=intents)
+    tree = app_commands.CommandTree(bot)
+
+    # Slash Commands Group
+    fish_group = app_commands.Group(name="fish", description="Fishing report commands")
+
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S'
+    )
+    logger = logging.getLogger(__name__)
+
+    CONFIG_FILE = "config.json"
+
+    @fish_group.command(name="today", description="Get full report for current day (weather, tide, fish activity)")
+    @app_commands.describe(
+        zip_code="ZIP code for location (optional if already set)",
+        fishing_type="Fishing type: shore, boat, or kayak (optional if already set)"
+    )
+    @app_commands.choices(fishing_type=[
+        app_commands.Choice(name="shore", value="shore"),
+        app_commands.Choice(name="boat", value="boat"),
+        app_commands.Choice(name="kayak", value="kayak")
+    ])
+
 
 def load_config():
     try:
@@ -135,26 +160,6 @@ async def send_daily_report(user_id, channel_id):
     else:
         logger.error(f"Channel {channel_id} not found for daily report to user {user_id}")
 
-# Discord Bot Setup
-intents = discord.Intents.default()
-intents.messages = True
-intents.message_content = True
-bot = discord.Client(intents=intents)
-tree = app_commands.CommandTree(bot)
-
-# Slash Commands Group
-fish_group = app_commands.Group(name="fish", description="Fishing report commands")
-
-@fish_group.command(name="today", description="Get full report for current day (weather, tide, fish activity)")
-@app_commands.describe(
-    zip_code="ZIP code for location (optional if already set)",
-    fishing_type="Fishing type: shore, boat, or kayak (optional if already set)"
-)
-@app_commands.choices(fishing_type=[
-    app_commands.Choice(name="shore", value="shore"),
-    app_commands.Choice(name="boat", value="boat"),
-    app_commands.Choice(name="kayak", value="kayak")
-])
 async def fish_today(interaction: discord.Interaction, zip_code: str = None, fishing_type: app_commands.Choice[str] = None):
     """Get full report for current day"""
     user_id = interaction.user.id
