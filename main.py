@@ -9,7 +9,7 @@ import logging
 from datetime import datetime
 from dotenv import load_dotenv
 from call_gemini import get_fishing_report, get_fishing_report_time_window, get_fishing_report_weekly, get_species_recommendations_gemini
-from command_logic import get_today_report, get_tomorrow_report, fish_today, fish_tomorrow
+from command_logic import get_today_report, get_tomorrow_report, today_logic, tomorrow_logic
 
 load_dotenv()
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
@@ -144,7 +144,7 @@ async def fish_today(interaction: discord.Interaction, zip_code: str = None, fis
     else:
         fishing_type = fishing_type.value
 
-    today_logic(interaction, zip_code, fishing_type, @logger)
+    today_logic(interaction, zip_code, fishing_type, logger)
 
 @fish_group.command(name="tomorrow", description="Get full report for tomorrow (weather, tide, fish activity)")
 @app_commands.describe(
