@@ -7,7 +7,7 @@ import json
 import logging
 from datetime import datetime
 from dotenv import load_dotenv
-from command_logic import get_today_report, get_tomorrow_report, today_logic, tomorrow_logic, daily_logic, week_logic, set_logic
+from command_logic import get_today_report, get_tomorrow_report, today_logic, tomorrow_logic, daily_logic, week_logic, set_logic, species_logic, time_logic
 
 load_dotenv()
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 CONFIG_FILE = "config.json"
 
-def load_config():
+def load_config(): # pragma: no cover
     try:
         with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
             return json.load(f)
@@ -51,7 +51,7 @@ fish_group = app_commands.Group(name="fish", description="Fishing report command
     app_commands.Choice(name="boat", value="boat"),
     app_commands.Choice(name="kayak", value="kayak")
 ])
-async def fish_today(interaction: discord.Interaction, zip_code: str = None, fishing_type: app_commands.Choice[str] = None):
+async def fish_today(interaction: discord.Interaction, zip_code: str = None, fishing_type: app_commands.Choice[str] = None): # pragma: no cover
     """Get full report for current day"""
     await today_logic(interaction, zip_code, fishing_type)
 
@@ -65,7 +65,7 @@ async def fish_today(interaction: discord.Interaction, zip_code: str = None, fis
     app_commands.Choice(name="boat", value="boat"),
     app_commands.Choice(name="kayak", value="kayak")
 ])
-async def fish_tomorrow(interaction: discord.Interaction, zip_code: str = None, fishing_type: app_commands.Choice[str] = None):
+async def fish_tomorrow(interaction: discord.Interaction, zip_code: str = None, fishing_type: app_commands.Choice[str] = None): # pragma: no cover
     """Get full report for tomorrow"""
     await tomorrow_logic(interaction, zip_code, fishing_type)
 
@@ -80,7 +80,7 @@ async def fish_tomorrow(interaction: discord.Interaction, zip_code: str = None, 
     app_commands.Choice(name="boat", value="boat"),
     app_commands.Choice(name="kayak", value="kayak")
 ])
-async def fish_daily(interaction: discord.Interaction, time_range: str, zip_code: str = None, fishing_type: app_commands.Choice[str] = None):
+async def fish_daily(interaction: discord.Interaction, time_range: str, zip_code: str = None, fishing_type: app_commands.Choice[str] = None): # pragma: no cover
     """Set up automatic daily report"""
 
     await daily_logic(interaction, zip_code, fishing_type, time_range)
@@ -99,7 +99,7 @@ async def fish_daily(interaction: discord.Interaction, time_range: str, zip_code
     app_commands.Choice(name="boat", value="boat"),
     app_commands.Choice(name="kayak", value="kayak")
 ])
-async def fish_time(interaction: discord.Interaction, start: str, end: str, start_date: str = None, end_date: str = None, zip_code: str = None, fishing_type: app_commands.Choice[str] = None):
+async def fish_time(interaction: discord.Interaction, start: str, end: str, start_date: str = None, end_date: str = None, zip_code: str = None, fishing_type: app_commands.Choice[str] = None): # pragma: no cover
     """Get forecast for custom time window"""
     await time_logic(interaction, start, end, start_date, end_date, zip_code, fishing_type)
 
@@ -113,9 +113,9 @@ async def fish_time(interaction: discord.Interaction, start: str, end: str, star
     app_commands.Choice(name="boat", value="boat"),
     app_commands.Choice(name="kayak", value="kayak")
 ])
-async def fish_week(interaction: discord.Interaction, zip_code: str = None, fishing_type: app_commands.Choice[str] = None):
+async def fish_week(interaction: discord.Interaction, zip_code: str = None, fishing_type: app_commands.Choice[str] = None): # pragma: no cover
     """Get weekly summary"""
-    week_logic(interaction, zip_code, fishing_type)
+    await week_logic(interaction, zip_code, fishing_type)
 
 @fish_group.command(name="set", description="Save your default fishing location + style")
 @app_commands.describe(
@@ -127,7 +127,7 @@ async def fish_week(interaction: discord.Interaction, zip_code: str = None, fish
     app_commands.Choice(name="boat", value="boat"),
     app_commands.Choice(name="kayak", value="kayak")
 ])
-async def fish_set(interaction: discord.Interaction, zip_code: str, fishing_type: app_commands.Choice[str] = None):
+async def fish_set(interaction: discord.Interaction, zip_code: str, fishing_type: app_commands.Choice[str] = None): # pragma: no cover
     """Save user preferences"""
     await set_logic(interaction, zip_code, fishing_type)
 
@@ -142,7 +142,7 @@ async def fish_set(interaction: discord.Interaction, zip_code: str, fishing_type
     app_commands.Choice(name="boat", value="boat"),
     app_commands.Choice(name="kayak", value="kayak")
 ])
-async def fish_species(interaction: discord.Interaction, species: str = None, zip_code: str = None, fishing_type: app_commands.Choice[str] = None):
+async def fish_species(interaction: discord.Interaction, species: str = None, zip_code: str = None, fishing_type: app_commands.Choice[str] = None): # pragma: no cover
     """Get local fish species based on location"""
     await species_logic(interaction, species, zip_code, fishing_type)
 

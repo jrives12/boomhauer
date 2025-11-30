@@ -28,9 +28,9 @@ def random_string(length):
     return random_string
 
 @pytest.mark.asyncio
-@patch("command_logic.get_fishing_report", new_callable=AsyncMock)
-async def test_fish_today(mock_fishing_report, caplog):
-    mock_fishing_report.return_value = random_string(1000)
+@patch("command_logic.get_today_report", new_callable=AsyncMock)
+async def test_fish_today(mock_today_report, caplog):
+    mock_today_report.return_value = random_string(1000)
     interaction = mock_interaction()
 
     fishing_type = Mock()
@@ -176,9 +176,9 @@ async def test_fish_time(caplog):
 
 
 @pytest.mark.asyncio
-@patch("command_logic.get_fishing_report", new_callable=AsyncMock)
-async def test_fish_week(mock_fishing_report, caplog):
-    mock_fishing_report.return_value = random_string(1000)
+@patch("command_logic.get_weekly_report", new_callable=AsyncMock)
+async def test_fish_week(mock_weekly_report, caplog):
+    mock_weekly_report.return_value = random_string(1000)
     interaction = mock_interaction()
 
     fishing_type = Mock()
@@ -222,8 +222,8 @@ async def test_fish_set():
     assert config['fishing_type'] == fishing_type.value
 
 @pytest.mark.asyncio
-@patch("command_logic.get_species_recommendations", new_callable=AsyncMock)
-async def test_fish_species(mock_get_specied, caplog):
+@patch("command_logic.get_species_recommendations")
+async def test_fish_species(mock_species, caplog):
     interaction = mock_interaction()
 
     fishing_type = Mock()

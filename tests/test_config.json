@@ -1,5 +1,31 @@
 {
+  "station_id": "8665530",
+  "data_types": [
+    "water_level",
+    "currents"
+  ],
+  "units": "english",
+  "time_zone": "gmt",
+  "use_current_date": true,
+  "days_ahead": 1,
+  "lat": "32.7808",
+  "lon": "-79.9236",
   "user_preferences": {
+    "491416549526208527": {
+      "zip_code": "29414",
+      "daily_report_time": "12:00",
+      "daily_report_time_range": "12 PM - 3 PM",
+      "daily_report_enabled": true,
+      "daily_report_channel": 1434620646851088435,
+      "fishing_type": "kayak"
+    },
+    "669745239380066334": {
+      "zip_code": "29072",
+      "daily_report_time": "12:00",
+      "daily_report_time_range": "12PM - 3PM",
+      "daily_report_enabled": true,
+      "daily_report_channel": 1434620646851088435
+    },
     "42": {
       "zip_code": 29072,
       "fishing_type": "shore",
