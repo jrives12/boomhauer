@@ -1,0 +1,12 @@
+{
+  "user_preferences": {
+    "42": {
+      "zip_code": 29072,
+      "fishing_type": "shore",
+      "daily_report_time": "12:00",
+      "daily_report_time_range": "12 PM - 3 PM",
+      "daily_report_enabled": true,
+      "daily_report_channel": 42
+    }
+  }
+}
