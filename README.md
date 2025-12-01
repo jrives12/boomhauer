@@ -127,7 +127,7 @@ pytest -v
 To check code coverage:
 
 ```
-pytest --cov
+pytest --cov=. --cov-config=.coveragerc
 ```
 
 This will show which lines of code are covered by tests and which are missing. 
