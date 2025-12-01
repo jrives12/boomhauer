@@ -90,17 +90,17 @@ Once active, the bot will connect to the specified Discord channel and listen fo
 
 ## Example Usage
 
-Within your desired Discord Channel, you will need to use one of the following commands. Each of these commands will on default use the base configuration, unless specified. The type is referring to the type of fishing: <shore/boat/kayak>
+Within your desired Discord Channel, you will need to use one of the following commands. Each of these commands will on default use the base configuration, unless specified. The type is referring to the type of fishing: shore/boat/kayak
 
 | Command | Description |
 |---------|-------------|
-| /fish today <zip> <type> | Get full report for current day (weather, tide, fish activity). |
-| /fish daily <time> <zip> <type> | Get automatic morning report for the current day. Time to receive report is required.|
-| /fish tomorrow <zip> <type>| Get automatic morning report for the next. |
-| /fish time <start> <end> <zip> <type>| Get forecast for custom time window. Start time and end time are both required. |
-| /fish week <zip> <type> | Weekly summary with best fishing days. |
-| /fish set <zip> <type> | Save your default fishing location + style. |
-| /fish species <fish> <zip> <type> | Get species-specific recommendations (tactics, conditions, bite windows). |
+| /fish today zip type | Get full report for current day (weather, tide, fish activity). |
+| /fish daily time zip type | Get automatic morning report for the current day. Time to receive report is required.|
+| /fish tomorrow zip type | Get automatic morning report for the next. |
+| /fish time start end zip type| Get forecast for custom time window. Start time and end time are both required. |
+| /fish week zip type | Weekly summary with best fishing days. |
+| /fish set zip type | Save your default fishing location + style. |
+| /fish species fish zip type | Get species-specific recommendations (tactics, conditions, bite windows). |
 
 There are example return templates within the repository that can be changed to any desired return format from the Boomhauer Fishing Buddy.
 
