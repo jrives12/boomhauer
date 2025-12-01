@@ -3,7 +3,7 @@ import json
 import os
 import logging
 from fish import get_fish
-from weather import get_weather
+from weather import get_weather, zip_to_coords
 from noaa_tides_currents import get_tide
 
 try: # pragma: no cover
@@ -44,9 +44,20 @@ def combine_api_data(zip_code=None, fishing_type=None):
         "weather_data": None
     }
     
+    # Convert zip_code to lat/lon if provided
+    lat = None
+    lon = None
+    if zip_code:
+        logger.info(f"Converting ZIP code {zip_code} to coordinates...") # pragma: no cover
+        lat, lon = zip_to_coords(str(zip_code))
+        if lat and lon:
+            logger.info(f"✓ ZIP code converted to coordinates: lat={lat}, lon={lon}") # pragma: no cover
+        else:
+            logger.warning(f"Failed to convert ZIP code {zip_code} to coordinates, using default location") # pragma: no cover
+    
     logger.info("Calling iNaturalist API (get_fish)...") # pragma: no cover
     try:
-        fish_json = get_fish()
+        fish_json = get_fish(lat, lon)
         data["fish_data"] = json.loads(fish_json) if isinstance(fish_json, str) else fish_json
         if "error" in data["fish_data"]:
             logger.warning(f"iNaturalist API returned error: {data['fish_data'].get('error')}")
@@ -71,7 +82,7 @@ def combine_api_data(zip_code=None, fishing_type=None):
     
     logger.info("Calling Weather API (get_weather)...") # pragma: no cover
     try:
-        data["weather_data"] = get_weather()
+        data["weather_data"] = get_weather(lat, lon)
         if data["weather_data"] and "error" not in str(data["weather_data"]):
             logger.info("✓ Weather API success")
         else:

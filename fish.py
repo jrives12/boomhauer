@@ -8,11 +8,16 @@ def load_config(config_file: str = "config.json"): # pragma: no cover
         config = json.load(f)
     return config
 
-def get_fish(): # pragma: no cover
+def get_fish(lat=None, lon=None): # pragma: no cover
     """Get fish species data by latitude/longitude using iNaturalist API (free, no API key required)"""
-    config = load_config()
-    lat = float(config.get("lat"))
-    lon = float(config.get("lon"))
+    # Use provided lat/lon or fall back to config
+    if lat is None or lon is None:
+        config = load_config()
+        lat = float(lat or config.get("lat"))
+        lon = float(lon or config.get("lon"))
+    else:
+        lat = float(lat)
+        lon = float(lon)
     
     # iNaturalist API - free, no API key required
     # Search for fish species observations near the given coordinates

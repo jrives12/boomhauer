@@ -3,9 +3,15 @@ import pytest
 import random
 import string
 import re
+import json
 
-from unittest.mock import Mock, AsyncMock, patch
-from command_logic import today_logic, tomorrow_logic, daily_logic, load_config, time_logic, week_logic, set_logic, species_logic
+from unittest.mock import Mock, AsyncMock, patch, MagicMock
+from command_logic import (
+    today_logic, tomorrow_logic, daily_logic, load_config, time_logic, week_logic, 
+    set_logic, species_logic, get_user_pref, set_user_pref, get_location, save_config,
+    get_today_report, get_weekly_report, get_time_window_report, get_tomorrow_report,
+    get_species_recommendations, send_daily_report
+)
     
 logger = logging.getLogger(__name__)
 CONFIG_FILE = "tests/test_config.json"
@@ -252,3 +258,392 @@ async def test_fish_species(mock_species, caplog):
         await species_logic(interaction,species,29072, fishing_type)
     sent_text = interaction.followup.send.await_args.args[0]
     assert "(truncated)" in sent_text
+
+@pytest.mark.asyncio
+@patch("command_logic.CONFIG_FILE", CONFIG_FILE)
+async def test_load_config():
+    config = load_config()
+    assert isinstance(config, dict)
+    assert "user_preferences" in config
+
+@patch("command_logic.CONFIG_FILE", "nonexistent.json")
+def test_load_config_file_not_found():
+    config = load_config()
+    assert config == {}
+
+@patch("command_logic.CONFIG_FILE", CONFIG_FILE)
+@patch("command_logic.json.load", side_effect=json.JSONDecodeError("Invalid JSON", "", 0))
+def test_load_config_json_error(mock_json):
+    config = load_config()
+    assert config == {}
+
+@patch("command_logic.CONFIG_FILE", CONFIG_FILE)
+def test_save_config():
+    test_config = {"test": "value"}
+    save_config(test_config)
+    loaded = load_config()
+    assert loaded.get("test") == "value"
+
+@patch("command_logic.CONFIG_FILE", CONFIG_FILE)
+def test_get_user_pref():
+    set_user_pref(999, "test_key", "test_value")
+    value = get_user_pref(999, "test_key")
+    assert value == "test_value"
+    
+    default_value = get_user_pref(999, "nonexistent", "default")
+    assert default_value == "default"
+
+@patch("command_logic.CONFIG_FILE", CONFIG_FILE)
+def test_set_user_pref():
+    set_user_pref(888, "new_key", "new_value")
+    value = get_user_pref(888, "new_key")
+    assert value == "new_value"
+
+@patch("command_logic.CONFIG_FILE", CONFIG_FILE)
+def test_get_location_with_zip():
+    result = get_location(None, "12345")
+    assert result == "12345"
+
+@patch("command_logic.CONFIG_FILE", CONFIG_FILE)
+def test_get_location_from_user_pref():
+    set_user_pref(777, "zip_code", "54321")
+    result = get_location(777, None)
+    assert result == "54321"
+
+@patch("command_logic.CONFIG_FILE", CONFIG_FILE)
+def test_get_location_from_config_lat_lon():
+    config = load_config()
+    if "lat" in config and "lon" in config:
+        result = get_location(None, None)
+        assert result == f"{config['lat']},{config['lon']}"
+
+@patch("command_logic.CONFIG_FILE", CONFIG_FILE)
+def test_get_location_returns_none():
+    with patch("command_logic.load_config", return_value={}):
+        result = get_location(None, None)
+        assert result is None
+
+@pytest.mark.asyncio
+@patch("command_logic.get_fishing_report")
+async def test_get_today_report_success(mock_report):
+    mock_report.return_value = "Test report"
+    result = await get_today_report("12345", "shore")
+    assert result == "Test report"
+
+@pytest.mark.asyncio
+@patch("command_logic.get_fishing_report", side_effect=Exception("API Error"))
+async def test_get_today_report_exception(mock_report):
+    result = await get_today_report("12345", "shore")
+    assert "Error" in result
+
+@pytest.mark.asyncio
+@patch("command_logic.get_fishing_report_weekly")
+async def test_get_weekly_report_success(mock_report):
+    mock_report.return_value = "Weekly report"
+    result = await get_weekly_report("12345", "kayak")
+    assert result == "Weekly report"
+
+@pytest.mark.asyncio
+@patch("command_logic.get_fishing_report_weekly", side_effect=Exception("API Error"))
+async def test_get_weekly_report_exception(mock_report):
+    result = await get_weekly_report("12345", "kayak")
+    assert "Error" in result
+
+@pytest.mark.asyncio
+@patch("command_logic.get_fishing_report_time_window")
+async def test_get_time_window_report_success(mock_report):
+    mock_report.return_value = "Time window report"
+    result = await get_time_window_report("2025-12-01 10:00", "2025-12-01 14:00", "12345", "boat")
+    assert result == "Time window report"
+
+@pytest.mark.asyncio
+@patch("command_logic.get_fishing_report_time_window", side_effect=Exception("API Error"))
+async def test_get_time_window_report_exception(mock_report):
+    result = await get_time_window_report("2025-12-01 10:00", "2025-12-01 14:00", "12345", "boat")
+    assert "Error" in result
+
+@pytest.mark.asyncio
+@patch("command_logic.get_time_window_report", new_callable=AsyncMock)
+async def test_get_tomorrow_report(mock_time_window):
+    mock_time_window.return_value = "Tomorrow report"
+    result = await get_tomorrow_report("12345", "shore")
+    assert result == "Tomorrow report"
+    assert mock_time_window.called
+
+@pytest.mark.asyncio
+@patch("command_logic.get_species_recommendations_gemini")
+async def test_get_species_recommendations_success(mock_species):
+    mock_species.return_value = "Species info"
+    result = await get_species_recommendations("shark", "12345", "kayak")
+    assert result == "Species info"
+
+@pytest.mark.asyncio
+@patch("command_logic.get_species_recommendations_gemini", side_effect=Exception("API Error"))
+async def test_get_species_recommendations_exception(mock_species):
+    result = await get_species_recommendations("shark", "12345", "kayak")
+    assert "Error" in result
+
+@pytest.mark.asyncio
+@patch("command_logic.get_today_report", new_callable=AsyncMock)
+@patch("command_logic.get_location")
+async def test_send_daily_report_success(mock_location, mock_report):
+    mock_location.return_value = "12345"
+    mock_report.return_value = "Daily report content"
+    
+    bot = MagicMock()
+    channel = AsyncMock()
+    bot.get_channel.return_value = channel
+    
+    await send_daily_report(bot, 123, 456)
+    
+    assert mock_report.called
+    assert channel.send.called
+
+@pytest.mark.asyncio
+@patch("command_logic.get_location", return_value=None)
+async def test_send_daily_report_no_location(mock_location, caplog):
+    bot = MagicMock()
+    
+    with caplog.at_level(logging.WARNING):
+        await send_daily_report(bot, 123, 456)
+    
+    assert "no location set" in caplog.text
+
+@pytest.mark.asyncio
+@patch("command_logic.get_today_report", new_callable=AsyncMock)
+@patch("command_logic.get_location")
+async def test_send_daily_report_no_channel(mock_location, mock_report, caplog):
+    mock_location.return_value = "12345"
+    mock_report.return_value = "Daily report content"
+    
+    bot = MagicMock()
+    bot.get_channel.return_value = None
+    
+    with caplog.at_level(logging.ERROR):
+        await send_daily_report(bot, 123, 456)
+    
+    assert "Channel" in caplog.text and "not found" in caplog.text
+
+@pytest.mark.asyncio
+@patch("command_logic.get_today_report", new_callable=AsyncMock)
+async def test_today_logic_no_fishing_type(mock_report, caplog):
+    mock_report.return_value = "Report"
+    interaction = mock_interaction()
+    
+    with patch("command_logic.get_user_pref", return_value="kayak"):
+        await today_logic(interaction, 29072, None)
+    
+    assert mock_report.called
+
+@pytest.mark.asyncio
+@patch("command_logic.get_today_report", new_callable=AsyncMock, side_effect=Exception("Test error"))
+async def test_today_logic_exception(mock_report, caplog):
+    interaction = mock_interaction()
+    fishing_type = Mock()
+    fishing_type.value = "shore"
+    
+    with caplog.at_level(logging.ERROR):
+        await today_logic(interaction, 29072, fishing_type)
+    
+    assert "Failed to send report" in caplog.text
+
+@pytest.mark.asyncio
+@patch("command_logic.get_tomorrow_report", new_callable=AsyncMock)
+async def test_tomorrow_logic_no_fishing_type(mock_report):
+    mock_report.return_value = "Report"
+    interaction = mock_interaction()
+    
+    with patch("command_logic.get_user_pref", return_value="boat"):
+        await tomorrow_logic(interaction, 29072, None)
+    
+    assert mock_report.called
+
+@pytest.mark.asyncio
+@patch("command_logic.get_tomorrow_report", new_callable=AsyncMock, side_effect=Exception("Test error"))
+async def test_tomorrow_logic_exception(mock_report, caplog):
+    interaction = mock_interaction()
+    fishing_type = Mock()
+    fishing_type.value = "shore"
+    
+    with caplog.at_level(logging.ERROR):
+        await tomorrow_logic(interaction, 29072, fishing_type)
+    
+    assert "Failed to send report" in caplog.text
+
+@pytest.mark.asyncio
+@patch("command_logic.CONFIG_FILE", CONFIG_FILE)
+async def test_daily_logic_no_fishing_type():
+    interaction = mock_interaction()
+    zip_code = 29072
+    time_range = "8 AM - 10 AM"
+    
+    with patch("command_logic.get_user_pref", return_value="kayak"):
+        await daily_logic(interaction, zip_code, None, time_range)
+    
+    config = load_config()['user_preferences'][str(interaction.user.id)]
+    assert config['fishing_type'] == "kayak"
+
+@pytest.mark.asyncio
+@patch("command_logic.CONFIG_FILE", CONFIG_FILE)
+async def test_daily_logic_no_fishing_type_saved():
+    interaction = mock_interaction()
+    zip_code = 29072
+    time_range = "9 AM - 11 AM"
+    
+    await daily_logic(interaction, zip_code, None, time_range)
+    
+    config = load_config()['user_preferences'][str(interaction.user.id)]
+    assert config.get('fishing_type') is None or config.get('fishing_type') == "kayak"
+
+@pytest.mark.asyncio
+@patch("command_logic.get_time_window_report", new_callable=AsyncMock)
+async def test_time_logic_success(mock_report):
+    mock_report.return_value = "Time report"
+    interaction = mock_interaction()
+    fishing_type = Mock()
+    fishing_type.value = "shore"
+    
+    await time_logic(interaction, "3pm", "5pm", None, None, 29072, fishing_type)
+    
+    assert mock_report.called
+
+@pytest.mark.asyncio
+@patch("command_logic.get_time_window_report", new_callable=AsyncMock)
+async def test_time_logic_with_dates(mock_report):
+    mock_report.return_value = "Time report"
+    interaction = mock_interaction()
+    fishing_type = Mock()
+    fishing_type.value = "shore"
+    
+    await time_logic(interaction, "10:00", "14:00", "2025-12-25", "2025-12-25", 29072, fishing_type)
+    
+    assert mock_report.called
+
+@pytest.mark.asyncio
+@patch("command_logic.get_time_window_report", new_callable=AsyncMock)
+async def test_time_logic_24h_format(mock_report):
+    mock_report.return_value = "Time report"
+    interaction = mock_interaction()
+    fishing_type = Mock()
+    fishing_type.value = "shore"
+    
+    await time_logic(interaction, "15:00", "17:00", None, None, 29072, fishing_type)
+    
+    assert mock_report.called
+
+@pytest.mark.asyncio
+@patch("command_logic.get_time_window_report", new_callable=AsyncMock)
+async def test_time_logic_am_pm_with_colon(mock_report):
+    mock_report.return_value = "Time report"
+    interaction = mock_interaction()
+    fishing_type = Mock()
+    fishing_type.value = "shore"
+    
+    await time_logic(interaction, "3:30 PM", "5:30 PM", None, None, 29072, fishing_type)
+    
+    assert mock_report.called
+
+@pytest.mark.asyncio
+@patch("command_logic.get_time_window_report", new_callable=AsyncMock)
+async def test_time_logic_12am_12pm(mock_report):
+    mock_report.return_value = "Time report"
+    interaction = mock_interaction()
+    fishing_type = Mock()
+    fishing_type.value = "shore"
+    
+    await time_logic(interaction, "12:00 AM", "12:00 PM", None, None, 29072, fishing_type)
+    
+    assert mock_report.called
+
+@pytest.mark.asyncio
+@patch("command_logic.get_time_window_report", new_callable=AsyncMock)
+async def test_time_logic_no_fishing_type(mock_report):
+    mock_report.return_value = "Time report"
+    interaction = mock_interaction()
+    
+    with patch("command_logic.get_user_pref", return_value="kayak"):
+        await time_logic(interaction, "3pm", "5pm", None, None, 29072, None)
+    
+    assert mock_report.called
+
+@pytest.mark.asyncio
+@patch("command_logic.get_time_window_report", new_callable=AsyncMock, side_effect=Exception("Test error"))
+async def test_time_logic_exception(mock_report, caplog):
+    interaction = mock_interaction()
+    fishing_type = Mock()
+    fishing_type.value = "shore"
+    
+    with caplog.at_level(logging.ERROR):
+        await time_logic(interaction, "3pm", "5pm", None, None, 29072, fishing_type)
+    
+    assert "Failed to send time window report" in caplog.text
+
+@pytest.mark.asyncio
+@patch("command_logic.get_weekly_report", new_callable=AsyncMock)
+async def test_week_logic_no_fishing_type(mock_report):
+    mock_report.return_value = "Weekly report"
+    interaction = mock_interaction()
+    
+    with patch("command_logic.get_user_pref", return_value="boat"):
+        await week_logic(interaction, 29072, None)
+    
+    assert mock_report.called
+
+@pytest.mark.asyncio
+@patch("command_logic.get_weekly_report", new_callable=AsyncMock, side_effect=Exception("Test error"))
+async def test_week_logic_exception(mock_report, caplog):
+    interaction = mock_interaction()
+    fishing_type = Mock()
+    fishing_type.value = "shore"
+    
+    with caplog.at_level(logging.ERROR):
+        await week_logic(interaction, 29072, fishing_type)
+    
+    assert "Failed to send weekly report" in caplog.text
+
+@pytest.mark.asyncio
+@patch("command_logic.CONFIG_FILE", CONFIG_FILE)
+async def test_set_logic_no_fishing_type():
+    interaction = mock_interaction()
+    interaction.user.id = 9999
+    zip_code = 29072
+    
+    await set_logic(interaction, zip_code, None)
+    
+    config = load_config()['user_preferences'][str(interaction.user.id)]
+    assert config['zip_code'] == zip_code
+
+@pytest.mark.asyncio
+@patch("command_logic.get_species_recommendations", new_callable=AsyncMock)
+async def test_species_logic_no_fishing_type(mock_species):
+    mock_species.return_value = "Species report"
+    interaction = mock_interaction()
+    
+    with patch("command_logic.get_user_pref", return_value="kayak"):
+        await species_logic(interaction, "shark", 29072, None)
+    
+    assert mock_species.called
+
+@pytest.mark.asyncio
+@patch("command_logic.get_species_recommendations", new_callable=AsyncMock)
+async def test_species_logic_no_species(mock_species):
+    mock_species.return_value = "All species"
+    interaction = mock_interaction()
+    fishing_type = Mock()
+    fishing_type.value = "shore"
+    
+    await species_logic(interaction, None, 29072, fishing_type)
+    
+    assert mock_species.called
+
+@pytest.mark.asyncio
+@patch("command_logic.get_species_recommendations", new_callable=AsyncMock, side_effect=Exception("Test error"))
+async def test_species_logic_exception(mock_species, caplog):
+    interaction = mock_interaction()
+    fishing_type = Mock()
+    fishing_type.value = "shore"
+    
+    with caplog.at_level(logging.ERROR):
+        await species_logic(interaction, "shark", 29072, fishing_type)
+    
+    assert "Failed to send species recommendations" in caplog.text

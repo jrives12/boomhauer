@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 CONFIG_FILE = "config.json"
 
-def load_config(): # pragma: no cover
+def load_config():
     try:
         with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
             return json.load(f)
@@ -19,17 +19,17 @@ def load_config(): # pragma: no cover
     except json.JSONDecodeError:
         return {}
 
-def save_config(config): # pragma: no cover
+def save_config(config):
     with open(CONFIG_FILE, 'w', encoding='utf-8') as f:
         json.dump(config, f, indent=2)
 
-def get_user_pref(user_id, key, default=None): # pragma: no cover
+def get_user_pref(user_id, key, default=None):
     config = load_config()
     if "user_preferences" not in config:
         config["user_preferences"] = {}
     return config["user_preferences"].get(str(user_id), {}).get(key, default)
 
-def set_user_pref(user_id, key, value): # pragma: no cover
+def set_user_pref(user_id, key, value):
     config = load_config()
     if "user_preferences" not in config:
         config["user_preferences"] = {}
@@ -38,7 +38,7 @@ def set_user_pref(user_id, key, value): # pragma: no cover
     config["user_preferences"][str(user_id)][key] = value
     save_config(config)
 
-def get_location(user_id=None, zip_code=None):  # pragma: no cover
+def get_location(user_id=None, zip_code=None):
     if zip_code:
         return zip_code
     if user_id:
@@ -50,7 +50,7 @@ def get_location(user_id=None, zip_code=None):  # pragma: no cover
         return f"{config['lat']},{config['lon']}"
     return None
 
-async def get_today_report(zip_code=None, fishing_type=None): # pragma: no cover
+async def get_today_report(zip_code=None, fishing_type=None):
     logger.info(f"Requesting today's report - location: {zip_code}, type: {fishing_type}")
     loop = asyncio.get_event_loop()
     try:
@@ -61,7 +61,7 @@ async def get_today_report(zip_code=None, fishing_type=None): # pragma: no cover
         logger.error(f"Today's report failed: {str(e)}")
         return f"❌ Error: {str(e)}"
 
-async def get_weekly_report(zip_code=None, fishing_type=None): # pragma: no cover
+async def get_weekly_report(zip_code=None, fishing_type=None):
     logger.info(f"Requesting weekly report - location: {zip_code}, type: {fishing_type}")
     loop = asyncio.get_event_loop()
     try:
@@ -72,7 +72,7 @@ async def get_weekly_report(zip_code=None, fishing_type=None): # pragma: no cove
         logger.error(f"Weekly report failed: {str(e)}")
         return f"❌ Error: {str(e)}"
 
-async def get_time_window_report(start_time, end_time, zip_code=None, fishing_type=None): # pragma: no cover
+async def get_time_window_report(start_time, end_time, zip_code=None, fishing_type=None):
     logger.info(f"Requesting time window report - {start_time} to {end_time}, location: {zip_code}")
     loop = asyncio.get_event_loop()
     try:
@@ -83,7 +83,7 @@ async def get_time_window_report(start_time, end_time, zip_code=None, fishing_ty
         logger.error(f"Time window report failed: {str(e)}")
         return f"❌ Error: {str(e)}"
 
-async def get_tomorrow_report(zip_code=None, fishing_type=None): # pragma: no cover
+async def get_tomorrow_report(zip_code=None, fishing_type=None):
     tomorrow = datetime.now() + timedelta(days=1)
     tomorrow_str = tomorrow.strftime("%Y-%m-%d")
     start = f"{tomorrow_str} 00:00"
@@ -91,7 +91,7 @@ async def get_tomorrow_report(zip_code=None, fishing_type=None): # pragma: no co
     logger.info(f"Requesting tomorrow's report - location: {zip_code}, type: {fishing_type}")
     return await get_time_window_report(start, end, zip_code, fishing_type)
 
-async def get_species_recommendations(species_name, zip_code=None, fishing_type=None): # pragma: no cover
+async def get_species_recommendations(species_name, zip_code=None, fishing_type=None):
     logger.info(f"Requesting species recommendations - species: {species_name or 'all'}, location: {zip_code}")
     loop = asyncio.get_event_loop()
     try:
@@ -102,8 +102,7 @@ async def get_species_recommendations(species_name, zip_code=None, fishing_type=
         logger.error(f"Species recommendations failed: {str(e)}")
         return f"❌ Error: {str(e)}"
 
-async def send_daily_report(user_id, channel_id): # pragma: no cover
-    """Send automatic daily report"""
+async def send_daily_report(bot, user_id, channel_id):
     logger.info(f"Sending daily report to user {user_id} in channel {channel_id}")
     zip_code = get_location(user_id)
     fishing_type = get_user_pref(user_id, "fishing_type")
@@ -121,7 +120,6 @@ async def send_daily_report(user_id, channel_id): # pragma: no cover
     else:
         logger.error(f"Channel {channel_id} not found for daily report to user {user_id}")
 
-# DEFINING SLASH COMMANDS
 async def today_logic(interaction, zip_code, fishing_type):
     user_id = interaction.user.id
     username = interaction.user.name
@@ -132,9 +130,9 @@ async def today_logic(interaction, zip_code, fishing_type):
         await interaction.response.send_message("❌ Please set your ZIP code first.", ephemeral=True)
         return
 
-    if not fishing_type: # pragma: no cover
+    if not fishing_type:
         fishing_type = get_user_pref(user_id, "fishing_type")
-    else: # pragma: no cover
+    else:
         fishing_type = fishing_type.value
 
     logger.info(f"Command /fish today - User: {username} (ID: {user_id}), zip_code: {zip_code}, type: {fishing_type}") 
@@ -162,6 +160,11 @@ async def tomorrow_logic(interaction, zip_code, fishing_type):
         await interaction.response.send_message("❌ Please set your ZIP code first.", ephemeral=True)
         return
     
+    if not fishing_type:
+        fishing_type = get_user_pref(user_id, "fishing_type")
+    else:
+        fishing_type = fishing_type.value
+    
     await interaction.response.defer(thinking=True)
     try:
         report = await get_tomorrow_report(zip_code, fishing_type)
@@ -181,9 +184,9 @@ async def daily_logic(interaction, zip_code, fishing_type, time_range):
      
 
     zip_code = get_location(user_id, zip_code)
-    if not fishing_type: # pragma: no cover
+    if not fishing_type:
         fishing_type = get_user_pref(user_id, "fishing_type")
-    else: # pragma: no cover
+    else:
         fishing_type = fishing_type.value
 
     if not zip_code:
@@ -265,7 +268,7 @@ async def time_logic(interaction, start, end, start_date, end_date, zip_code, fi
     
     try:
         
-        def parse_time(time_str, date_str=None): # pragma: no cover
+        def parse_time(time_str, date_str=None):
             time_str = time_str.strip().upper()
             
             
@@ -350,9 +353,9 @@ async def week_logic(interaction, zip_code, fishing_type):
     logger.info(f"Command /fish week - User: {username} (ID: {user_id}), zip_code: {zip_code}, type: {fishing_type}")
     
     zip_code = get_location(user_id, zip_code)
-    if not fishing_type: # pragma: no cover
+    if not fishing_type:
         fishing_type = get_user_pref(user_id, "fishing_type")
-    else: # pragma: no cover
+    else:
         fishing_type = fishing_type.value
     
     if not zip_code:
@@ -378,7 +381,7 @@ async def set_logic(interaction, zip_code, fishing_type):
     logger.info(f"Command /fish set - User: {username} (ID: {user_id}), zip_code: {zip_code}, type: {fishing_type}")
     
     set_user_pref(user_id, "zip_code", zip_code)
-    if fishing_type: # pragma: no cover
+    if fishing_type:
         set_user_pref(user_id, "fishing_type", fishing_type.value)
     
     logger.info(f"Preferences saved for user {username}")
@@ -394,9 +397,9 @@ async def species_logic(interaction, species, zip_code, fishing_type):
     logger.info(f"Command /fish species - User: {username} (ID: {user_id}), species: {species or 'all'}, zip_code: {zip_code}")
     
     zip_code = get_location(user_id, zip_code)
-    if not fishing_type: # pragma: no cover
+    if not fishing_type:
         fishing_type = get_user_pref(user_id, "fishing_type")
-    else: # pragma: no cover
+    else:
         fishing_type = fishing_type.value
     
     if not zip_code:

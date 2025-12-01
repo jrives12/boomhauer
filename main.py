@@ -7,7 +7,7 @@ import json
 import logging
 from datetime import datetime
 from dotenv import load_dotenv
-from command_logic import get_today_report, get_tomorrow_report, today_logic, tomorrow_logic, daily_logic, week_logic, set_logic, species_logic, time_logic
+from command_logic import get_today_report, get_tomorrow_report, today_logic, tomorrow_logic, daily_logic, week_logic, set_logic, species_logic, time_logic, get_location, get_user_pref, set_user_pref, send_daily_report
 
 load_dotenv()
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
@@ -234,7 +234,7 @@ async def on_ready():
     check_daily_reports.start()
     logger.info("Daily report task started")
 
-@tasks.loop(minutes=60)
+@tasks.loop(minutes=1)
 async def check_daily_reports():
     """Check if it's time to send daily reports"""
     now = datetime.now()
@@ -253,7 +253,7 @@ async def check_daily_reports():
                 channel_id = user_data.get("daily_report_channel")
                 logger.info(f"Triggering daily report for user {user_id} at {report_time}")
                 if channel_id:
-                    await send_daily_report(user_id, channel_id)
+                    await send_daily_report(bot, user_id, channel_id)
                 else:
                     logger.warning(f"No channel ID set for user {user_id} daily report")
 

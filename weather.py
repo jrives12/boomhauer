@@ -16,7 +16,36 @@ def load_config(config_file: str = "config.json"): # pragma: no cover
         config = json.load(f)
     return config
 
-def get_weather(): # pragma: no cover
+def zip_to_coords(zip_code: str): # pragma: no cover
+    """Convert ZIP code to latitude and longitude using OpenWeather geocoding API"""
+    try:
+        OPEN_WEATHER_TOKEN = os.getenv("OPEN_WEATHER_TOKEN")
+        if not OPEN_WEATHER_TOKEN:
+            return None, None
+        
+        # OpenWeather Geocoding API
+        GEOCODE_URL = "http://api.openweathermap.org/geo/1.0/zip"
+        params = {
+            "zip": f"{zip_code},US",
+            "appid": OPEN_WEATHER_TOKEN
+        }
+        
+        request_url = f"{GEOCODE_URL}?{urllib.parse.urlencode(params)}"
+        req = urllib.request.Request(request_url)
+        
+        with urllib.request.urlopen(req) as response:
+            data = response.read()
+            encoding = response.info().get_content_charset('utf-8')
+            result = json.loads(data.decode(encoding))
+            
+            if "lat" in result and "lon" in result:
+                return str(result["lat"]), str(result["lon"])
+            return None, None
+    except Exception as e:
+        # If geocoding fails, return None to fall back to config
+        return None, None
+
+def get_weather(lat=None, lon=None): # pragma: no cover
 	# Try to load dotenv if available
 	try:
 		load_dotenv()
@@ -27,9 +56,13 @@ def get_weather(): # pragma: no cover
 	BASE_URL = "https://api.openweathermap.org/data/3.0/onecall"
 	api_key = OPEN_WEATHER_TOKEN
 
-	config = load_config()
-	lat = config.get("lat")
-	lon = config.get("lon")
+	# Use provided lat/lon or fall back to config
+	if lat is None or lon is None:
+		config = load_config()
+		if lat is None:
+			lat = config.get("lat")
+		if lon is None:
+			lon = config.get("lon")
 
 	headers = {
 	    "Authorization": f"Bearer {api_key}",

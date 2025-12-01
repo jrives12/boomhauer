@@ -4,9 +4,19 @@ from unittest.mock import MagicMock, patch
 from noaa_tides_currents import fetch_and_save_data
 
 @patch("noaa_tides_currents.NOAACoOpsAPI")
-def test_fetch_and_save(api):
+@patch("noaa_tides_currents.load_config")
+def test_fetch_and_save(mock_load_config, api):
     mock_noaa = MagicMock()
     api.return_value = mock_noaa
+
+    mock_load_config.return_value = {
+        'station_id': '8665530',
+        'begin_date': '20251201',
+        'end_date': '20251202',
+        'data_types': ['water_level', 'currents'],
+        'units': 'english',
+        'time_zone': 'gmt'
+    }
 
     quiet = True
     config_file = "tests/test_config.json"
