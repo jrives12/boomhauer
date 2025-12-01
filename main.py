@@ -69,9 +69,9 @@ async def fish_tomorrow(interaction: discord.Interaction, zip_code: str = None, 
     """Get full report for tomorrow"""
     await tomorrow_logic(interaction, zip_code, fishing_type)
 
-@fish_group.command(name="daily", description="Get automatic morning report at configured time")
+@fish_group.command(name="daily", description="Get automatic daily report at configured time")
 @app_commands.describe(
-    time_range="Time range for daily report (e.g., '12 PM - 3 PM' or '8 AM - 10 AM')",
+    time="Time to receive daily report (e.g., '8 AM', '3 PM', '08:00', '15:00')",
     zip_code="ZIP code for location (optional if already set)",
     fishing_type="Fishing type: shore, boat, or kayak (optional if already set)"
 )
@@ -80,10 +80,87 @@ async def fish_tomorrow(interaction: discord.Interaction, zip_code: str = None, 
     app_commands.Choice(name="boat", value="boat"),
     app_commands.Choice(name="kayak", value="kayak")
 ])
-async def fish_daily(interaction: discord.Interaction, time_range: str, zip_code: str = None, fishing_type: app_commands.Choice[str] = None): # pragma: no cover
+async def fish_daily(interaction: discord.Interaction, time: str, zip_code: str = None, fishing_type: app_commands.Choice[str] = None):
     """Set up automatic daily report"""
-
-    await daily_logic(interaction, zip_code, fishing_type, time_range)
+    user_id = interaction.user.id
+    username = interaction.user.name
+    logger.info(f"Command /fish daily - User: {username} (ID: {user_id}), time: {time}, zip_code: {zip_code}")
+    
+    zip_code = get_location(user_id, zip_code)
+    if not fishing_type:
+        fishing_type = get_user_pref(user_id, "fishing_type")
+    else:
+        fishing_type = fishing_type.value
+    
+    if not zip_code:
+        await interaction.response.send_message("❌ Please set your ZIP code first.", ephemeral=True)
+        return
+    
+    try:
+        def parse_single_time(time_str):
+            time_str = time_str.strip().upper()
+            
+            if "PM" in time_str or "AM" in time_str:
+                time_str_clean = time_str.replace(" ", "")
+                if ":" in time_str_clean:
+                    if "PM" in time_str_clean:
+                        time_part = time_str_clean.replace("PM", "")
+                        hour, minute = map(int, time_part.split(":"))
+                        if hour != 12:
+                            hour += 12
+                    else:
+                        time_part = time_str_clean.replace("AM", "")
+                        hour, minute = map(int, time_part.split(":"))
+                        if hour == 12:
+                            hour = 0
+                else:
+                    if "PM" in time_str_clean:
+                        hour = int(time_str_clean.replace("PM", ""))
+                        if hour != 12:
+                            hour += 12
+                        minute = 0
+                    else:
+                        hour = int(time_str_clean.replace("AM", ""))
+                        if hour == 12:
+                            hour = 0
+                        minute = 0
+            else:
+                if ":" in time_str:
+                    hour, minute = map(int, time_str.split(":"))
+                else:
+                    hour = int(time_str)
+                    minute = 0
+            
+            if not (0 <= hour <= 23) or not (0 <= minute <= 59):
+                raise ValueError("Invalid hour or minute")
+            
+            return f"{hour:02d}:{minute:02d}"
+        
+        report_time = parse_single_time(time)
+        
+    except (ValueError, AttributeError) as e:
+        logger.warning(f"User {username} provided invalid time format: {str(e)}")
+        await interaction.response.send_message(
+            "❌ Invalid time format. Please use formats like: '8 AM', '3 PM', '08:00', or '15:00'",
+            ephemeral=True
+        )
+        return
+    
+    set_user_pref(user_id, "zip_code", zip_code)
+    if fishing_type:
+        set_user_pref(user_id, "fishing_type", fishing_type)
+    set_user_pref(user_id, "daily_report_time", report_time)
+    set_user_pref(user_id, "daily_report_enabled", True)
+    set_user_pref(user_id, "daily_report_channel", interaction.channel_id)
+    
+    logger.info(f"Daily report configured for user {username} - time: {report_time}, location: {zip_code}")
+    await interaction.response.send_message(
+        f"✅ Daily fishing report configured!\n"
+        f"**ZIP Code:** {zip_code}\n"
+        f"**Fishing Type:** {fishing_type or 'Not set'}\n"
+        f"**Report Time:** {report_time}\n"
+        f"**Channel:** <#{interaction.channel_id}>"
+    )
 
 @fish_group.command(name="time", description="Get forecast for custom time window")
 @app_commands.describe(
