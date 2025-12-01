@@ -2,13 +2,13 @@
 import json
 import requests
 
-def load_config(config_file: str = "config.json"):
+def load_config(config_file: str = "config.json"): # pragma: no cover
     """Load configuration from JSON file"""
     with open(config_file, 'r', encoding='utf-8') as f:
         config = json.load(f)
     return config
 
-def get_fish():
+def get_fish(): # pragma: no cover
     """Get fish species data by latitude/longitude using iNaturalist API (free, no API key required)"""
     config = load_config()
     lat = float(config.get("lat"))

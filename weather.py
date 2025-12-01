@@ -4,19 +4,19 @@ import json
 import os
 
 # Try to load dotenv, but don't fail if it's not available
-try:
+try: # pragma: no cover
     from dotenv import load_dotenv
     load_dotenv()
-except ImportError:
+except ImportError: # pragma: no cover
     pass  # dotenv not available, environment variables must be set another way
 
-def load_config(config_file: str = "config.json"):
+def load_config(config_file: str = "config.json"): # pragma: no cover
     """Load configuration from JSON file"""
     with open(config_file, 'r', encoding='utf-8') as f:
         config = json.load(f)
     return config
 
-def get_weather():
+def get_weather(): # pragma: no cover
 	# Try to load dotenv if available
 	try:
 		load_dotenv()

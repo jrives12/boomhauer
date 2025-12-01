@@ -1,6 +1,7 @@
 /target/
 !.mvn/wrapper/maven-wrapper.jar
 /node_modules/
+*.swp
 
 ### STS ###
 .apt_generated
@@ -33,3 +34,8 @@ __pycache__
 /nbdist/
 /.nb-gradle/
 /build/
+
+### pytest ###
+*,cover
+.coverage
+.coveragerc
