@@ -33,5 +33,5 @@ jobs:
 
     - name: Run tests
       run: |
-        pytest -vs --log-cli-level=INFO --cov=. --ignore=main.py
+        pytest -vs --log-cli-level=INFO --cov=. --cov-config=.coveragerc
 

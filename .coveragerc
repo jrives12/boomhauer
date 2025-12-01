@@ -1,0 +1,9 @@
+[run]
+source = .
+omit = 
+    */tests/*
+    */test_*.py
+    main.py
+    */fish_env/*
+    */__pycache__/*
+    */__pycache__
