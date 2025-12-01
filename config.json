@@ -18,6 +18,10 @@
       "daily_report_enabled": true,
       "daily_report_channel": 1434620646851088435,
       "fishing_type": "kayak"
+    },
+    "42": {
+      "zip_code": 29072,
+      "fishing_type": "shore"
     }
   }
 }
