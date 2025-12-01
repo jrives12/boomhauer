@@ -223,9 +223,9 @@ async def fish_tomorrow(interaction: discord.Interaction, zip_code: str = None, 
         logger.error(f"Failed to send report to {username}: {str(e)}")
         await interaction.followup.send(f"❌ Error: {str(e)}", ephemeral=True)
 
-@fish_group.command(name="daily", description="Get automatic morning report at configured time")
+@fish_group.command(name="daily", description="Get automatic daily report at configured time")
 @app_commands.describe(
-    time_range="Time range for daily report (e.g., '12 PM - 3 PM' or '8 AM - 10 AM')",
+    time="Time to receive daily report (e.g., '8 AM', '3 PM', '08:00', '15:00')",
     zip_code="ZIP code for location (optional if already set)",
     fishing_type="Fishing type: shore, boat, or kayak (optional if already set)"
 )
@@ -234,11 +234,11 @@ async def fish_tomorrow(interaction: discord.Interaction, zip_code: str = None, 
     app_commands.Choice(name="boat", value="boat"),
     app_commands.Choice(name="kayak", value="kayak")
 ])
-async def fish_daily(interaction: discord.Interaction, time_range: str, zip_code: str = None, fishing_type: app_commands.Choice[str] = None):
+async def fish_daily(interaction: discord.Interaction, time: str, zip_code: str = None, fishing_type: app_commands.Choice[str] = None):
     """Set up automatic daily report"""
     user_id = interaction.user.id
     username = interaction.user.name
-    logger.info(f"Command /fish daily - User: {username} (ID: {user_id}), time_range: {time_range}, zip_code: {zip_code}")
+    logger.info(f"Command /fish daily - User: {username} (ID: {user_id}), time: {time}, zip_code: {zip_code}")
     
     zip_code = get_location(user_id, zip_code)
     if not fishing_type:
@@ -250,41 +250,52 @@ async def fish_daily(interaction: discord.Interaction, time_range: str, zip_code
         await interaction.response.send_message("❌ Please set your ZIP code first.", ephemeral=True)
         return
     
-    time_pattern = r'(\d+)\s*(AM|PM)\s*-\s*(\d+)\s*(AM|PM)'
-    match = re.match(time_pattern, time_range.upper().strip())
-    
-    if not match:
+    try:
+        def parse_single_time(time_str):
+            time_str = time_str.strip().upper()
+            
+            if "PM" in time_str or "AM" in time_str:
+                time_str_clean = time_str.replace(" ", "")
+                if ":" in time_str_clean:
+                    if "PM" in time_str_clean:
+                        time_part = time_str_clean.replace("PM", "")
+                        hour, minute = map(int, time_part.split(":"))
+                        if hour != 12:
+                            hour += 12
+                    else:
+                        time_part = time_str_clean.replace("AM", "")
+                        hour, minute = map(int, time_part.split(":"))
+                        if hour == 12:
+                            hour = 0
+                else:
+                    if "PM" in time_str_clean:
+                        hour = int(time_str_clean.replace("PM", ""))
+                        if hour != 12:
+                            hour += 12
+                        minute = 0
+                    else:
+                        hour = int(time_str_clean.replace("AM", ""))
+                        if hour == 12:
+                            hour = 0
+                        minute = 0
+            else:
+                if ":" in time_str:
+                    hour, minute = map(int, time_str.split(":"))
+                else:
+                    hour = int(time_str)
+                    minute = 0
+            
+            if not (0 <= hour <= 23) or not (0 <= minute <= 59):
+                raise ValueError("Invalid hour or minute")
+            
+            return f"{hour:02d}:{minute:02d}"
+        
+        report_time = parse_single_time(time)
+        
+    except (ValueError, AttributeError) as e:
+        logger.warning(f"User {username} provided invalid time format: {str(e)}")
         await interaction.response.send_message(
-            "❌ Invalid time format. Please use format like '12 PM - 3 PM' or '8 AM - 10 AM'.",
-            ephemeral=True
-        )
-        return
-    
-    start_hour = int(match.group(1))
-    start_period = match.group(2)
-    end_hour = int(match.group(3))
-    end_period = match.group(4)
-    
-    if start_period == "PM" and start_hour != 12:
-        start_hour += 12
-    elif start_period == "AM" and start_hour == 12:
-        start_hour = 0
-    
-    if end_period == "PM" and end_hour != 12:
-        end_hour += 12
-    elif end_period == "AM" and end_hour == 12:
-        end_hour = 0
-    
-    if not (0 <= start_hour <= 23) or not (0 <= end_hour <= 23):
-        await interaction.response.send_message(
-            "❌ Invalid time. Hours must be between 1-12.",
-            ephemeral=True
-        )
-        return
-    
-    if end_hour <= start_hour:
-        await interaction.response.send_message(
-            "❌ End time must be after start time.",
+            "❌ Invalid time format. Please use formats like: '8 AM', '3 PM', '08:00', or '15:00'",
             ephemeral=True
         )
         return
@@ -292,17 +303,16 @@ async def fish_daily(interaction: discord.Interaction, time_range: str, zip_code
     set_user_pref(user_id, "zip_code", zip_code)
     if fishing_type:
         set_user_pref(user_id, "fishing_type", fishing_type)
-    set_user_pref(user_id, "daily_report_time", f"{start_hour:02d}:00")
-    set_user_pref(user_id, "daily_report_time_range", time_range)
+    set_user_pref(user_id, "daily_report_time", report_time)
     set_user_pref(user_id, "daily_report_enabled", True)
     set_user_pref(user_id, "daily_report_channel", interaction.channel_id)
     
-    logger.info(f"Daily report configured for user {username} - time: {time_range}, location: {zip_code}")
+    logger.info(f"Daily report configured for user {username} - time: {report_time}, location: {zip_code}")
     await interaction.response.send_message(
         f"✅ Daily fishing report configured!\n"
         f"**ZIP Code:** {zip_code}\n"
         f"**Fishing Type:** {fishing_type or 'Not set'}\n"
-        f"**Report Time:** {time_range}\n"
+        f"**Report Time:** {report_time}\n"
         f"**Channel:** <#{interaction.channel_id}>"
     )
 
